@@ -1,4 +1,4 @@
-vlwservices:
+services:
   app:
     build:
       context: .
