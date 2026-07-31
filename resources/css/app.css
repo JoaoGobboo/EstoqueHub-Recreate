@@ -132,6 +132,56 @@
     --sidebar-ring: oklch(0.439 0 0);
 }
 
+/* Keep dashboard data transitions local so the surrounding layout never jumps. */
+@keyframes dashboard-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+@keyframes dashboard-data-reveal {
+    from {
+        opacity: 0;
+        transform: translateY(2px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@layer components {
+    .dashboard-skeleton {
+        background-color: #27272a;
+        background-image: linear-gradient(
+            100deg,
+            #27272a 20%,
+            #3f3f46 45%,
+            #52525b 50%,
+            #3f3f46 55%,
+            #27272a 80%
+        );
+        background-size: 220% 100%;
+        animation: dashboard-shimmer 1.35s ease-in-out infinite;
+    }
+
+    .dashboard-data-reveal {
+        animation: dashboard-data-reveal 220ms ease-out both;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-skeleton,
+    .dashboard-data-reveal {
+        animation: none;
+    }
+}
+
 @layer base {
     * {
         @apply border-border;
