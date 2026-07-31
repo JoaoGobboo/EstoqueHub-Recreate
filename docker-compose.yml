@@ -1,0 +1,31 @@
+vlwservices:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${APP_PORT:-3000}:80"
+    environment:
+      APP_NAME: EstoqueHub Recreate
+      APP_ENV: local
+      APP_KEY: "${APP_KEY:-}"
+      APP_DEBUG: "${APP_DEBUG:-true}"
+      APP_URL: "${DOCKER_APP_URL:-http://localhost:3000}"
+      AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
+      AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
+      AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
+      AZURE_LOGIN_REDIRECT_URI: "${AZURE_LOGIN_REDIRECT_URI:-http://localhost:3000/login/microsoft/callback}"
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: debug
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /var/lib/laravel/database.sqlite
+      DB_FOREIGN_KEYS: "true"
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+    volumes:
+      - laravel-data:/var/lib/laravel
+    restart: unless-stopped
+
+volumes:
+  laravel-data:
