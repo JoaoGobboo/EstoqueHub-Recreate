@@ -14,6 +14,7 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::inertia('movimentacao', 'movimentacao')->name('movimentacao');
 });
 
 require __DIR__.'/settings.php';

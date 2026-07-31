@@ -27,7 +27,7 @@ import { dashboard } from '@/routes';
 type NavigationItem = {
     label: string;
     icon: LucideIcon;
-    href?: ReturnType<typeof dashboard>;
+    href?: string;
 };
 
 type DashboardSidebarProps = {
@@ -36,8 +36,8 @@ type DashboardSidebarProps = {
 };
 
 const navigation: NavigationItem[] = [
-    { label: 'Dashboard', icon: LayoutGrid, href: dashboard() },
-    { label: 'Movimentação', icon: PackageOpen },
+    { label: 'Dashboard', icon: LayoutGrid, href: dashboard().url },
+    { label: 'Movimentação', icon: PackageOpen, href: '/movimentacao' },
     { label: 'Sugestões', icon: Lightbulb },
     { label: 'Alertas', icon: TriangleAlert },
     { label: 'Histórico', icon: History },

@@ -1,3 +1,4 @@
+import { usePage } from '@inertiajs/react';
 import { Settings } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
@@ -18,10 +19,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
 function DashboardShell({ children }: { children: ReactNode }) {
     const [settingsOpen, setSettingsOpen] = useState(false);
+    const { url } = usePage();
+    const activeItem = url.startsWith('/movimentacao')
+        ? 'Movimentação'
+        : 'Dashboard';
 
     return (
         <div className="dashboard-theme h-dvh w-full overflow-hidden bg-[var(--dashboard-canvas)] [font-family:Inter,ui-sans-serif,system-ui,sans-serif] text-[var(--dashboard-text)] transition-colors duration-200">
-            <DashboardSidebar onOpenSettings={() => setSettingsOpen(true)} />
+            <DashboardSidebar
+                activeItem={activeItem}
+                onOpenSettings={() => setSettingsOpen(true)}
+            />
 
             <div className="flex h-full min-w-0 flex-col md:pl-56 lg:pl-60 xl:pl-64">
                 <header className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--dashboard-border)] bg-[var(--dashboard-sidebar)] px-4 md:hidden">

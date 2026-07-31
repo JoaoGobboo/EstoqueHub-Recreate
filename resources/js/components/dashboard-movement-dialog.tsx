@@ -47,6 +47,19 @@ type Props = {
     onCreated: () => void;
 };
 
+type MovementFormVariant = 'dialog' | 'page';
+
+type MovementFormContentProps = {
+    active: boolean;
+    variant: MovementFormVariant;
+    onCompleted?: () => void;
+    onCreated: () => void;
+};
+
+type DashboardMovementFormProps = {
+    onCreated?: () => void;
+};
+
 type ApiError = {
     message?: string;
     errors?: Record<string, string[]>;
@@ -156,11 +169,12 @@ function readCsrfToken(): string {
     );
 }
 
-export function DashboardMovementDialog({
-    open,
-    onOpenChange,
+function MovementFormContent({
+    active,
+    variant,
+    onCompleted,
     onCreated,
-}: Props) {
+}: MovementFormContentProps) {
     const { units, selectedUnitId } = useDashboardScope();
     const scopedUnitId = selectedUnitId === null ? '' : String(selectedUnitId);
     const [movementType, setMovementType] = useState<MovementType>('entrada');
@@ -178,7 +192,7 @@ export function DashboardMovementDialog({
     const [formError, setFormError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!open) {
+        if (!active) {
             return;
         }
 
@@ -220,10 +234,10 @@ export function DashboardMovementDialog({
             });
 
         return () => controller.abort();
-    }, [open]);
+    }, [active]);
 
     useEffect(() => {
-        if (!open || !itemId) {
+        if (!active || !itemId) {
             return;
         }
 
@@ -265,7 +279,7 @@ export function DashboardMovementDialog({
             });
 
         return () => controller.abort();
-    }, [itemId, open]);
+    }, [active, itemId]);
 
     const selectedItem = items.find((item) => String(item.id) === itemId);
     const selectedUnit = units.find((unit) => String(unit.id) === unitId);
@@ -392,8 +406,21 @@ export function DashboardMovementDialog({
                 );
             }
 
-            toast.success(`${activeOption.label} registrada com sucesso.`);
-            onOpenChange(false);
+            toast.success(`${activeOption.label} registrada com sucesso.`, {
+                position: variant === 'page' ? 'top-right' : 'bottom-right',
+            });
+
+            onCompleted?.();
+
+            if (variant === 'page') {
+                setItemId('');
+                setDestinationUnitId('');
+                setQuantity('1');
+                setReason('');
+                setBalances([]);
+                setIsLoadingBalances(false);
+            }
+
             onCreated();
         } catch (error) {
             setFormError(
@@ -407,8 +434,8 @@ export function DashboardMovementDialog({
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="flex h-[calc(100vh-2rem)] max-h-[760px] max-w-[760px] flex-col gap-0 overflow-y-auto border-[var(--dashboard-border-strong)] bg-[var(--dashboard-surface)] p-0 text-[var(--dashboard-text)] shadow-[var(--dashboard-shadow)] transition-colors sm:h-[680px] sm:max-h-[calc(100vh-2rem)] sm:max-w-[760px] [&_[data-slot=dialog-close]]:top-5 [&_[data-slot=dialog-close]]:right-5 [&_[data-slot=dialog-close]]:flex [&_[data-slot=dialog-close]]:size-8 [&_[data-slot=dialog-close]]:items-center [&_[data-slot=dialog-close]]:justify-center [&_[data-slot=dialog-close]]:bg-[var(--dashboard-surface-muted)] [&_[data-slot=dialog-close]]:text-[var(--dashboard-text-secondary)] [&_[data-slot=dialog-close]]:opacity-100">
+        <>
+            {variant === 'dialog' && (
                 <DialogHeader className="shrink-0 gap-1 px-6 pt-5 pb-3 text-left">
                     <DialogTitle className="text-lg leading-tight font-bold">
                         Nova movimentação
@@ -417,106 +444,151 @@ export function DashboardMovementDialog({
                         Registre uma entrada, saída ou transferência.
                     </DialogDescription>
                 </DialogHeader>
+            )}
 
-                <form
-                    onSubmit={submitMovement}
-                    className="flex min-h-0 flex-1 flex-col gap-4 px-6 pb-5"
+            <form
+                onSubmit={submitMovement}
+                className={`flex min-w-0 flex-col gap-4 ${
+                    variant === 'dialog' ? 'min-h-0 flex-1 px-6 pb-5' : 'w-full'
+                }`}
+            >
+                <section
+                    className={`flex min-w-0 flex-col gap-4 rounded-lg border border-[var(--dashboard-border)] bg-[var(--dashboard-surface)] p-4 transition-colors sm:p-5 ${
+                        variant === 'dialog'
+                            ? 'min-h-0 flex-1 sm:min-h-[400px] sm:flex-none'
+                            : 'shadow-sm'
+                    }`}
                 >
-                    <section className="flex min-h-0 flex-1 flex-col gap-4 rounded-lg border border-[var(--dashboard-border)] bg-[var(--dashboard-surface)] p-4 sm:min-h-[400px] sm:flex-none">
-                        <div className="relative isolate grid shrink-0 grid-cols-3 rounded-md bg-[var(--dashboard-surface-muted)] p-1">
-                            <span
-                                aria-hidden="true"
-                                className="pointer-events-none absolute inset-y-1 left-1 z-0 w-[calc((100%_-_0.5rem)/3)] rounded bg-[var(--dashboard-accent)] shadow-sm transition-transform duration-300 ease-out will-change-transform motion-reduce:transition-none"
-                                style={{
-                                    transform: `translateX(${activeMovementIndex * 100}%)`,
+                    <div className="relative isolate grid shrink-0 grid-cols-3 rounded-md bg-[var(--dashboard-surface-muted)] p-1">
+                        <span
+                            aria-hidden="true"
+                            className="pointer-events-none absolute inset-y-1 left-1 z-0 w-[calc((100%_-_0.5rem)/3)] rounded bg-[var(--dashboard-accent)] shadow-sm transition-transform duration-300 ease-out will-change-transform motion-reduce:transition-none"
+                            style={{
+                                transform: `translateX(${activeMovementIndex * 100}%)`,
+                            }}
+                        />
+                        {movementOptions.map((option) => {
+                            const Icon = option.icon;
+                            const active = movementType === option.value;
+
+                            return (
+                                <button
+                                    key={option.value}
+                                    type="button"
+                                    onClick={() =>
+                                        selectMovementType(option.value)
+                                    }
+                                    aria-pressed={active}
+                                    className={`relative z-10 flex h-11 min-w-0 items-center justify-center gap-2.5 rounded text-xs font-semibold transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-[var(--dashboard-accent)] focus-visible:outline-none ${
+                                        active
+                                            ? 'text-[var(--dashboard-accent-foreground)]'
+                                            : 'text-[var(--dashboard-text-secondary)] hover:bg-[var(--dashboard-surface-hover)] hover:text-[var(--dashboard-text)]'
+                                    }`}
+                                >
+                                    <Icon className="size-4 shrink-0" />
+                                    <span className="truncate">
+                                        {option.label}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <div className="grid min-w-0 shrink-0 gap-3 min-[480px]:grid-cols-2">
+                        <MovementField label="Item">
+                            <Select
+                                value={itemId}
+                                onValueChange={(value) => {
+                                    setItemId(value);
+                                    setBalances([]);
+                                    setIsLoadingBalances(true);
+                                    setFormError(null);
                                 }}
-                            />
-                            {movementOptions.map((option) => {
-                                const Icon = option.icon;
-                                const active = movementType === option.value;
-
-                                return (
-                                    <button
-                                        key={option.value}
-                                        type="button"
-                                        onClick={() =>
-                                            selectMovementType(option.value)
+                                disabled={isLoadingItems}
+                            >
+                                <SelectTrigger className={controlClassName}>
+                                    <SelectValue
+                                        placeholder={
+                                            isLoadingItems
+                                                ? 'Carregando itens...'
+                                                : 'Selecione um item...'
                                         }
-                                        aria-pressed={active}
-                                        className={`relative z-10 flex h-11 min-w-0 items-center justify-center gap-2.5 rounded text-xs font-semibold transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-[var(--dashboard-accent)] focus-visible:outline-none ${
-                                            active
-                                                ? 'text-[var(--dashboard-accent-foreground)]'
-                                                : 'text-[var(--dashboard-text-secondary)] hover:bg-[var(--dashboard-surface-hover)] hover:text-[var(--dashboard-text)]'
-                                        }`}
-                                    >
-                                        <Icon className="size-4 shrink-0" />
-                                        <span className="truncate">
-                                            {option.label}
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                        </div>
+                                    />
+                                </SelectTrigger>
+                                <SelectContent
+                                    align="start"
+                                    className={selectContentClassName}
+                                >
+                                    {items.map((item) => (
+                                        <SelectItem
+                                            key={item.id}
+                                            value={String(item.id)}
+                                            className={selectItemClassName}
+                                            title={`${item.sku} — ${item.nome}`}
+                                        >
+                                            {item.sku} — {item.nome}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </MovementField>
 
-                        <div className="grid min-w-0 shrink-0 gap-3 min-[480px]:grid-cols-2">
-                            <MovementField label="Item">
+                        {movementType === 'transferencia' ? (
+                            <MovementField label="Quantidade">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    inputMode="numeric"
+                                    value={quantity}
+                                    onChange={(event) =>
+                                        setQuantity(event.target.value)
+                                    }
+                                    className={`${controlClassName} rounded-md px-3.5`}
+                                />
+                            </MovementField>
+                        ) : (
+                            <MovementField label="Unidade">
                                 <Select
-                                    value={itemId}
+                                    value={unitId}
                                     onValueChange={(value) => {
-                                        setItemId(value);
-                                        setBalances([]);
-                                        setIsLoadingBalances(true);
+                                        setUnitId(value);
                                         setFormError(null);
                                     }}
-                                    disabled={isLoadingItems}
                                 >
                                     <SelectTrigger className={controlClassName}>
-                                        <SelectValue
-                                            placeholder={
-                                                isLoadingItems
-                                                    ? 'Carregando itens...'
-                                                    : 'Selecione um item...'
-                                            }
-                                        />
+                                        <SelectValue placeholder="Selecione..." />
                                     </SelectTrigger>
                                     <SelectContent
                                         align="start"
                                         className={selectContentClassName}
                                     >
-                                        {items.map((item) => (
+                                        {units.map((unit) => (
                                             <SelectItem
-                                                key={item.id}
-                                                value={String(item.id)}
+                                                key={unit.id}
+                                                value={String(unit.id)}
                                                 className={selectItemClassName}
-                                                title={`${item.sku} — ${item.nome}`}
                                             >
-                                                {item.sku} — {item.nome}
+                                                {unit.nome}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                             </MovementField>
+                        )}
 
-                            {movementType === 'transferencia' ? (
-                                <MovementField label="Quantidade">
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        step="1"
-                                        inputMode="numeric"
-                                        value={quantity}
-                                        onChange={(event) =>
-                                            setQuantity(event.target.value)
-                                        }
-                                        className={`${controlClassName} rounded-md px-3.5`}
-                                    />
-                                </MovementField>
-                            ) : (
-                                <MovementField label="Unidade">
+                        {movementType === 'transferencia' ? (
+                            <>
+                                <MovementField label="Unidade de origem">
                                     <Select
-                                        value={unitId}
+                                        value={originUnitId}
                                         onValueChange={(value) => {
-                                            setUnitId(value);
+                                            setOriginUnitId(value);
+
+                                            if (value === destinationUnitId) {
+                                                setDestinationUnitId('');
+                                            }
+
                                             setFormError(null);
                                         }}
                                     >
@@ -543,224 +615,206 @@ export function DashboardMovementDialog({
                                         </SelectContent>
                                     </Select>
                                 </MovementField>
-                            )}
-
-                            {movementType === 'transferencia' ? (
-                                <>
-                                    <MovementField label="Unidade de origem">
-                                        <Select
-                                            value={originUnitId}
-                                            onValueChange={(value) => {
-                                                setOriginUnitId(value);
-
-                                                if (
-                                                    value === destinationUnitId
-                                                ) {
-                                                    setDestinationUnitId('');
-                                                }
-
-                                                setFormError(null);
-                                            }}
-                                        >
-                                            <SelectTrigger
-                                                className={controlClassName}
-                                            >
-                                                <SelectValue placeholder="Selecione..." />
-                                            </SelectTrigger>
-                                            <SelectContent
-                                                align="start"
-                                                className={
-                                                    selectContentClassName
-                                                }
-                                            >
-                                                {units.map((unit) => (
-                                                    <SelectItem
-                                                        key={unit.id}
-                                                        value={String(unit.id)}
-                                                        className={
-                                                            selectItemClassName
-                                                        }
-                                                    >
-                                                        {unit.nome}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </MovementField>
-                                    <MovementField label="Unidade de destino">
-                                        <Select
-                                            value={destinationUnitId}
-                                            onValueChange={(value) => {
-                                                setDestinationUnitId(value);
-                                                setFormError(null);
-                                            }}
-                                        >
-                                            <SelectTrigger
-                                                className={controlClassName}
-                                            >
-                                                <SelectValue placeholder="Selecione..." />
-                                            </SelectTrigger>
-                                            <SelectContent
-                                                align="start"
-                                                className={
-                                                    selectContentClassName
-                                                }
-                                            >
-                                                {units.map((unit) => (
-                                                    <SelectItem
-                                                        key={unit.id}
-                                                        value={String(unit.id)}
-                                                        disabled={
-                                                            String(unit.id) ===
-                                                            originUnitId
-                                                        }
-                                                        className={
-                                                            selectItemClassName
-                                                        }
-                                                    >
-                                                        {unit.nome}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </MovementField>
-                                    <MovementField
-                                        label="Motivo / documento"
-                                        className="col-span-full"
+                                <MovementField label="Unidade de destino">
+                                    <Select
+                                        value={destinationUnitId}
+                                        onValueChange={(value) => {
+                                            setDestinationUnitId(value);
+                                            setFormError(null);
+                                        }}
                                     >
-                                        <input
-                                            type="text"
-                                            maxLength={255}
-                                            value={reason}
-                                            onChange={(event) =>
-                                                setReason(event.target.value)
-                                            }
-                                            placeholder="Ex.: NF-e 8842, Chamado #4410"
-                                            className={`${controlClassName} rounded-md px-3.5`}
-                                        />
-                                    </MovementField>
-                                </>
-                            ) : (
-                                <>
-                                    <MovementField label="Quantidade">
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            step="1"
-                                            inputMode="numeric"
-                                            value={quantity}
-                                            onChange={(event) =>
-                                                setQuantity(event.target.value)
-                                            }
-                                            className={`${controlClassName} rounded-md px-3.5`}
-                                        />
-                                    </MovementField>
-                                    <MovementField label="Motivo / documento">
-                                        <input
-                                            type="text"
-                                            maxLength={255}
-                                            value={reason}
-                                            onChange={(event) =>
-                                                setReason(event.target.value)
-                                            }
-                                            placeholder="Ex.: NF-e 8842, Chamado #4410"
-                                            className={`${controlClassName} rounded-md px-3.5`}
-                                        />
-                                    </MovementField>
-                                </>
-                            )}
-                        </div>
-
-                        {formError && (
-                            <p
-                                role="alert"
-                                className="rounded-md border border-[var(--dashboard-danger-border)] bg-[var(--dashboard-danger-bg)] px-4 py-3 text-sm text-[var(--dashboard-danger-text)]"
-                            >
-                                {formError}
-                            </p>
-                        )}
-
-                        {insufficientBalance && (
-                            <p className="text-sm font-medium text-[var(--dashboard-danger-text)]">
-                                Saldo insuficiente para esta movimentação.
-                            </p>
-                        )}
-
-                        <div className="mt-auto flex shrink-0 flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-                            <span className="flex items-center gap-2.5 text-xs leading-5 text-[var(--dashboard-text-muted)]">
-                                <Info className="size-4 shrink-0" />
-                                Os dados ficam disponíveis no histórico após a
-                                confirmação.
-                            </span>
-                            <button
-                                type="submit"
-                                disabled={!canSubmit}
-                                className="inline-flex h-11 shrink-0 items-center justify-center gap-2.5 rounded-md bg-[var(--dashboard-accent)] px-5 text-sm font-extrabold text-[var(--dashboard-accent-foreground)] transition-colors hover:bg-[var(--dashboard-accent-hover)] disabled:cursor-not-allowed disabled:opacity-45"
-                            >
-                                {isSubmitting ? (
-                                    <LoaderCircle className="size-4 animate-spin" />
-                                ) : (
-                                    <Check className="size-4" />
-                                )}
-                                {isSubmitting
-                                    ? 'Registrando...'
-                                    : activeOption.confirmationLabel}
-                            </button>
-                        </div>
-                    </section>
-
-                    <section className="grid min-h-[104px] shrink-0 gap-3 rounded-lg border border-[var(--dashboard-border)] bg-[var(--dashboard-surface)] p-4 sm:min-h-0 sm:flex-1">
-                        <div className="flex items-center justify-between gap-3">
-                            <h3 className="text-sm font-semibold text-[var(--dashboard-text-muted)]">
-                                Impacto no saldo
-                            </h3>
-                            <span
-                                className={`text-xs font-bold tracking-wide ${impactToneClass}`}
-                            >
-                                {activeOption.label.toLocaleUpperCase('pt-BR')}
-                            </span>
-                        </div>
-
-                        {isLoadingBalances ? (
-                            <div className="flex h-14 items-center gap-2.5 text-sm text-[var(--dashboard-text-subtle)]">
-                                <LoaderCircle className="size-4 animate-spin" />
-                                Calculando impacto...
-                            </div>
-                        ) : !impactReady ? (
-                            <p className="py-1 text-sm leading-5 text-[var(--dashboard-text-subtle)]">
-                                Selecione um item e uma unidade para visualizar
-                                o saldo atual e a projeção.
-                            </p>
-                        ) : movementType === 'transferencia' ? (
-                            <div className="grid gap-3 min-[480px]:grid-cols-2">
-                                <ImpactLine
-                                    label={`Origem · ${originUnit?.nome ?? ''}`}
-                                    current={originBalance}
-                                    projected={originBalance - quantityValue}
-                                    invalid={insufficientBalance}
-                                />
-                                <ImpactLine
-                                    label={`Destino · ${destinationUnit?.nome ?? ''}`}
-                                    current={destinationBalance}
-                                    projected={
-                                        destinationBalance + quantityValue
-                                    }
-                                />
-                            </div>
+                                        <SelectTrigger
+                                            className={controlClassName}
+                                        >
+                                            <SelectValue placeholder="Selecione..." />
+                                        </SelectTrigger>
+                                        <SelectContent
+                                            align="start"
+                                            className={selectContentClassName}
+                                        >
+                                            {units.map((unit) => (
+                                                <SelectItem
+                                                    key={unit.id}
+                                                    value={String(unit.id)}
+                                                    disabled={
+                                                        String(unit.id) ===
+                                                        originUnitId
+                                                    }
+                                                    className={
+                                                        selectItemClassName
+                                                    }
+                                                >
+                                                    {unit.nome}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </MovementField>
+                                <MovementField
+                                    label="Motivo / documento"
+                                    className="col-span-full"
+                                >
+                                    <input
+                                        type="text"
+                                        maxLength={255}
+                                        value={reason}
+                                        onChange={(event) =>
+                                            setReason(event.target.value)
+                                        }
+                                        placeholder="Ex.: NF-e 8842, Chamado #4410"
+                                        className={`${controlClassName} rounded-md px-3.5`}
+                                    />
+                                </MovementField>
+                            </>
                         ) : (
+                            <>
+                                <MovementField label="Quantidade">
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        inputMode="numeric"
+                                        value={quantity}
+                                        onChange={(event) =>
+                                            setQuantity(event.target.value)
+                                        }
+                                        className={`${controlClassName} rounded-md px-3.5`}
+                                    />
+                                </MovementField>
+                                <MovementField label="Motivo / documento">
+                                    <input
+                                        type="text"
+                                        maxLength={255}
+                                        value={reason}
+                                        onChange={(event) =>
+                                            setReason(event.target.value)
+                                        }
+                                        placeholder="Ex.: NF-e 8842, Chamado #4410"
+                                        className={`${controlClassName} rounded-md px-3.5`}
+                                    />
+                                </MovementField>
+                            </>
+                        )}
+                    </div>
+
+                    {formError && (
+                        <p
+                            role="alert"
+                            className="rounded-md border border-[var(--dashboard-danger-border)] bg-[var(--dashboard-danger-bg)] px-4 py-3 text-sm text-[var(--dashboard-danger-text)]"
+                        >
+                            {formError}
+                        </p>
+                    )}
+
+                    {insufficientBalance && (
+                        <p className="text-sm font-medium text-[var(--dashboard-danger-text)]">
+                            Saldo insuficiente para esta movimentação.
+                        </p>
+                    )}
+
+                    <div className="mt-auto flex shrink-0 flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+                        <span className="flex items-center gap-2.5 text-xs leading-5 text-[var(--dashboard-text-muted)]">
+                            <Info className="size-4 shrink-0" />
+                            Os dados ficam disponíveis no histórico após a
+                            confirmação.
+                        </span>
+                        <button
+                            type="submit"
+                            disabled={!canSubmit}
+                            className="inline-flex h-11 shrink-0 items-center justify-center gap-2.5 rounded-md bg-[var(--dashboard-accent)] px-5 text-sm font-extrabold text-[var(--dashboard-accent-foreground)] transition-colors hover:bg-[var(--dashboard-accent-hover)] disabled:cursor-not-allowed disabled:opacity-45"
+                        >
+                            {isSubmitting ? (
+                                <LoaderCircle className="size-4 animate-spin" />
+                            ) : (
+                                <Check className="size-4" />
+                            )}
+                            {isSubmitting
+                                ? 'Registrando...'
+                                : activeOption.confirmationLabel}
+                        </button>
+                    </div>
+                </section>
+
+                <section
+                    className={`grid gap-3 rounded-lg border border-[var(--dashboard-border)] bg-[var(--dashboard-surface)] p-4 transition-colors sm:p-5 ${
+                        variant === 'dialog'
+                            ? 'min-h-[104px] shrink-0 sm:min-h-0 sm:flex-1'
+                            : 'min-h-[132px] shadow-sm'
+                    }`}
+                >
+                    <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-sm font-semibold text-[var(--dashboard-text-muted)]">
+                            Impacto no saldo
+                        </h3>
+                        <span
+                            className={`text-xs font-bold tracking-wide ${impactToneClass}`}
+                        >
+                            {activeOption.label.toLocaleUpperCase('pt-BR')}
+                        </span>
+                    </div>
+
+                    {isLoadingBalances ? (
+                        <div className="flex h-14 items-center gap-2.5 text-sm text-[var(--dashboard-text-subtle)]">
+                            <LoaderCircle className="size-4 animate-spin" />
+                            Calculando impacto...
+                        </div>
+                    ) : !impactReady ? (
+                        <p className="py-1 text-sm leading-5 text-[var(--dashboard-text-subtle)]">
+                            Selecione um item e uma unidade para visualizar o
+                            saldo atual e a projeção.
+                        </p>
+                    ) : movementType === 'transferencia' ? (
+                        <div className="grid gap-3 min-[480px]:grid-cols-2">
                             <ImpactLine
-                                label={`${selectedItem?.nome ?? ''} · ${selectedUnit?.nome ?? ''}`}
-                                current={currentBalance}
-                                projected={
-                                    movementType === 'entrada'
-                                        ? currentBalance + quantityValue
-                                        : currentBalance - quantityValue
-                                }
+                                label={`Origem · ${originUnit?.nome ?? ''}`}
+                                current={originBalance}
+                                projected={originBalance - quantityValue}
                                 invalid={insufficientBalance}
                             />
-                        )}
-                    </section>
-                </form>
+                            <ImpactLine
+                                label={`Destino · ${destinationUnit?.nome ?? ''}`}
+                                current={destinationBalance}
+                                projected={destinationBalance + quantityValue}
+                            />
+                        </div>
+                    ) : (
+                        <ImpactLine
+                            label={`${selectedItem?.nome ?? ''} · ${selectedUnit?.nome ?? ''}`}
+                            current={currentBalance}
+                            projected={
+                                movementType === 'entrada'
+                                    ? currentBalance + quantityValue
+                                    : currentBalance - quantityValue
+                            }
+                            invalid={insufficientBalance}
+                        />
+                    )}
+                </section>
+            </form>
+        </>
+    );
+}
+
+export function DashboardMovementForm({
+    onCreated = () => undefined,
+}: DashboardMovementFormProps) {
+    return <MovementFormContent active variant="page" onCreated={onCreated} />;
+}
+
+export function DashboardMovementDialog({
+    open,
+    onOpenChange,
+    onCreated,
+}: Props) {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="flex h-[calc(100vh-2rem)] max-h-[760px] max-w-[760px] flex-col gap-0 overflow-y-auto border-[var(--dashboard-border-strong)] bg-[var(--dashboard-surface)] p-0 text-[var(--dashboard-text)] shadow-[var(--dashboard-shadow)] transition-colors sm:h-[680px] sm:max-h-[calc(100vh-2rem)] sm:max-w-[760px] [&_[data-slot=dialog-close]]:top-5 [&_[data-slot=dialog-close]]:right-5 [&_[data-slot=dialog-close]]:flex [&_[data-slot=dialog-close]]:size-8 [&_[data-slot=dialog-close]]:items-center [&_[data-slot=dialog-close]]:justify-center [&_[data-slot=dialog-close]]:bg-[var(--dashboard-surface-muted)] [&_[data-slot=dialog-close]]:text-[var(--dashboard-text-secondary)] [&_[data-slot=dialog-close]]:opacity-100">
+                <MovementFormContent
+                    active={open}
+                    variant="dialog"
+                    onCompleted={() => onOpenChange(false)}
+                    onCreated={onCreated}
+                />
             </DialogContent>
         </Dialog>
     );
