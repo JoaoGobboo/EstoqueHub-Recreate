@@ -20,6 +20,19 @@ class UnidadeApiTest extends ApiTestCase
         $this->assertCount(3, $response->json('data'));
     }
 
+    public function test_lista_apenas_unidades_atribuidas_quando_usuario_tem_escopo(): void
+    {
+        $unidadePermitida = Unidade::factory()->create();
+        Unidade::factory()->create();
+        $this->usuario->unidades()->attach($unidadePermitida);
+
+        $response = $this->getJson('/api/unidades');
+
+        $response->assertOk();
+        $this->assertCount(1, $response->json('data'));
+        $response->assertJsonPath('data.0.id', $unidadePermitida->id);
+    }
+
     public function test_cria_unidade(): void
     {
         $response = $this->postJson('/api/unidades', [

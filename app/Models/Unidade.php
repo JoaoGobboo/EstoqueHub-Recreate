@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\UnidadeFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Unidade extends Model
@@ -17,6 +18,11 @@ class Unidade extends Model
         'localizacao',
         'responsavel',
     ];
+
+    public function usuarios(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class)->withTimestamps();
+    }
 
     public function saldos(): HasMany
     {

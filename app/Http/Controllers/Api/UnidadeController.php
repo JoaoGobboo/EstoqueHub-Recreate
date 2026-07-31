@@ -9,16 +9,27 @@ use App\Http\Resources\UnidadeResource;
 use App\Models\Item;
 use App\Models\SaldoPorUnidade;
 use App\Models\Unidade;
+use App\Services\UnidadeAccessService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class UnidadeController extends Controller
 {
+    public function __construct(private readonly UnidadeAccessService $unidadeAccessService) {}
+
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return UnidadeResource::collection(Unidade::orderBy('nome')->get());
+        $unidadeIds = $this->unidadeAccessService->idsFor($request->user());
+
+        return UnidadeResource::collection(
+            Unidade::query()
+                ->when($unidadeIds !== null, fn ($query) => $query->whereIn('id', $unidadeIds))
+                ->orderBy('nome')
+                ->get(),
+        );
     }
 
     /**

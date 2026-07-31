@@ -9,11 +9,18 @@ use App\Models\Movimentacao;
 use App\Models\SaldoPorUnidade;
 use App\Models\Unidade;
 use App\Services\EstoqueService;
+use App\Services\UnidadeAccessService;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function __construct(private readonly EstoqueService $estoqueService) {}
+    public function __construct(
+        private readonly EstoqueService $estoqueService,
+        private readonly UnidadeAccessService $unidadeAccessService,
+    ) {}
 
     /**
      * Resumo do estado atual do estoque para o painel principal. Todos os
@@ -21,20 +28,35 @@ class DashboardController extends Controller
      * decorativas sem dado real por trás (ex.: acuracidade de inventário,
      * que exigiria um módulo de contagem cíclica ainda não construído).
      */
-    public function index()
+    public function index(Request $request)
     {
-        $movimentacoesHojeBase = Movimentacao::whereDate('created_at', today());
+        $validated = $request->validate([
+            'unidade_id' => ['nullable', 'integer', 'exists:unidades,id'],
+        ]);
+        $unidadeId = isset($validated['unidade_id']) ? (int) $validated['unidade_id'] : null;
+        $unidadesAcessiveis = $this->unidadeAccessService->idsFor($request->user());
+
+        if ($unidadeId !== null && $unidadesAcessiveis !== null && ! $unidadesAcessiveis->contains($unidadeId)) {
+            abort(403, 'Você não possui acesso a esta unidade.');
+        }
+
+        $unidadeIds = $unidadeId !== null ? collect([$unidadeId]) : $unidadesAcessiveis;
+        $movimentacoesHojeBase = $this->movimentacoesNoEscopo(Movimentacao::query(), $unidadeIds)
+            ->whereDate('created_at', today());
         $inicioDoMes = today()->startOfMonth();
-        $movimentacoesMesBase = Movimentacao::whereBetween('created_at', [$inicioDoMes, now()]);
+        $movimentacoesMesBase = $this->movimentacoesNoEscopo(Movimentacao::query(), $unidadeIds)
+            ->whereBetween('created_at', [$inicioDoMes, now()]);
 
         $valorImobilizado = (float) DB::table('saldos_por_unidade')
             ->join('itens', 'itens.id', '=', 'saldos_por_unidade.item_id')
+            ->when($unidadeIds !== null, fn ($query) => $query->whereIn('saldos_por_unidade.unidade_id', $unidadeIds))
             ->selectRaw('COALESCE(SUM(saldos_por_unidade.quantidade * itens.valor_unitario), 0) as total')
             ->value('total');
 
-        $fluxo7Dias = collect(range(6, 0))->map(function (int $diasAtras) {
+        $fluxo7Dias = collect(range(6, 0))->map(function (int $diasAtras) use ($unidadeIds) {
             $data = today()->subDays($diasAtras);
-            $base = Movimentacao::whereDate('created_at', $data);
+            $base = $this->movimentacoesNoEscopo(Movimentacao::query(), $unidadeIds)
+                ->whereDate('created_at', $data);
 
             return [
                 'data' => $data->toDateString(),
@@ -44,7 +66,9 @@ class DashboardController extends Controller
             ];
         })->values();
 
-        $saldoPorUnidade = Unidade::withSum('saldos', 'quantidade')
+        $saldoPorUnidade = Unidade::query()
+            ->when($unidadeIds !== null, fn (Builder $query) => $query->whereIn('id', $unidadeIds))
+            ->withSum('saldos', 'quantidade')
             ->orderBy('nome')
             ->get()
             ->map(fn (Unidade $unidade) => [
@@ -56,12 +80,14 @@ class DashboardController extends Controller
             ->join('itens', 'itens.id', '=', 'movimentacoes.item_id')
             ->where('movimentacoes.tipo', 'saida')
             ->whereBetween('movimentacoes.created_at', [$inicioDoMes, now()])
+            ->when($unidadeIds !== null, fn ($query) => $query->whereIn('movimentacoes.unidade_origem_id', $unidadeIds))
             ->selectRaw('COALESCE(SUM(movimentacoes.quantidade * itens.valor_unitario), 0) as total')
             ->value('total');
 
         $consumo30Dias = Movimentacao::query()
             ->where('tipo', 'saida')
             ->where('created_at', '>=', today()->subDays(29)->startOfDay())
+            ->when($unidadeIds !== null, fn (Builder $query) => $query->whereIn('unidade_origem_id', $unidadeIds))
             ->selectRaw('item_id, unidade_origem_id, SUM(quantidade) as total')
             ->groupBy('item_id', 'unidade_origem_id')
             ->get();
@@ -103,6 +129,7 @@ class DashboardController extends Controller
         ];
 
         $saldosAtuais = SaldoPorUnidade::with(['item', 'unidade'])
+            ->when($unidadeIds !== null, fn (Builder $query) => $query->whereIn('unidade_id', $unidadeIds))
             ->get()
             ->sortBy(fn (SaldoPorUnidade $saldo) => $saldo->item->nome.'|'.$saldo->unidade->nome)
             ->values()
@@ -116,14 +143,34 @@ class DashboardController extends Controller
                 'estoque_minimo' => $saldo->item->estoque_minimo,
             ]);
 
-        $feedRecente = Movimentacao::with(['item', 'unidadeOrigem', 'unidadeDestino', 'usuario'])
+        $feedRecente = $this->movimentacoesNoEscopo(
+            Movimentacao::with(['item', 'unidadeOrigem', 'unidadeDestino', 'usuario']),
+            $unidadeIds,
+        )
             ->latest()
             ->limit(8)
             ->get();
 
+        $itensEmEstoque = (int) SaldoPorUnidade::query()
+            ->when($unidadeIds !== null, fn (Builder $query) => $query->whereIn('unidade_id', $unidadeIds))
+            ->sum('quantidade');
+        $skusAtivos = $unidadeIds === null
+            ? Item::count()
+            : SaldoPorUnidade::query()
+                ->whereIn('unidade_id', $unidadeIds)
+                ->where('quantidade', '>', 0)
+                ->distinct()
+                ->count('item_id');
+        $abaixoDoMinimo = $this->estoqueService->itensAbaixoDoMinimo()
+            ->when(
+                $unidadeIds !== null,
+                fn (Collection $saldos) => $saldos->whereIn('unidade_id', $unidadeIds),
+            )
+            ->count();
+
         return response()->json([
-            'itens_em_estoque' => (int) SaldoPorUnidade::sum('quantidade'),
-            'skus_ativos' => Item::count(),
+            'itens_em_estoque' => $itensEmEstoque,
+            'skus_ativos' => $skusAtivos,
             'movimentacoes_hoje' => [
                 'total' => (clone $movimentacoesHojeBase)->count(),
                 'entradas' => (clone $movimentacoesHojeBase)->where('tipo', 'entrada')->count(),
@@ -132,7 +179,7 @@ class DashboardController extends Controller
             ],
             'movimentacoes_mes' => (clone $movimentacoesMesBase)->count(),
             'valor_consumido_mes' => $valorConsumidoMes,
-            'abaixo_do_minimo' => $this->estoqueService->itensAbaixoDoMinimo()->count(),
+            'abaixo_do_minimo' => $abaixoDoMinimo,
             'valor_imobilizado' => $valorImobilizado,
             'fluxo_7_dias' => $fluxo7Dias,
             'saldo_por_unidade' => $saldoPorUnidade,
@@ -140,5 +187,19 @@ class DashboardController extends Controller
             'saldos_atuais' => $saldosAtuais,
             'feed_recente' => MovimentacaoResource::collection($feedRecente),
         ]);
+    }
+
+    /**
+     * @param  Collection<int, int>|null  $unidadeIds
+     */
+    private function movimentacoesNoEscopo(Builder $query, ?Collection $unidadeIds): Builder
+    {
+        return $query->when($unidadeIds !== null, function (Builder $query) use ($unidadeIds) {
+            $query->where(function (Builder $query) use ($unidadeIds) {
+                $query
+                    ->whereIn('unidade_origem_id', $unidadeIds)
+                    ->orWhereIn('unidade_destino_id', $unidadeIds);
+            });
+        });
     }
 }

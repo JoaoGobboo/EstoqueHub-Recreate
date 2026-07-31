@@ -67,4 +67,38 @@ class DashboardApiTest extends ApiTestCase
         $this->assertCount(2, $response->json('consumo_30_dias.series'));
         $this->assertSame([8, 3], collect($response->json('consumo_30_dias.series'))->pluck('quantidades.0')->sortDesc()->values()->all());
     }
+
+    public function test_dashboard_filtra_metricas_pela_unidade_selecionada(): void
+    {
+        $item = Item::factory()->create(['estoque_minimo' => 50, 'valor_unitario' => 10]);
+        $unidadeA = Unidade::factory()->create();
+        $unidadeB = Unidade::factory()->create();
+        $service = app(MovimentacaoService::class);
+
+        $service->registrarEntrada($item, $unidadeA, 10);
+        $service->registrarEntrada($item, $unidadeB, 30);
+
+        $response = $this->getJson("/api/dashboard?unidade_id={$unidadeA->id}");
+
+        $response->assertOk()
+            ->assertJsonPath('itens_em_estoque', 10)
+            ->assertJsonPath('skus_ativos', 1)
+            ->assertJsonPath('movimentacoes_hoje.total', 1)
+            ->assertJsonPath('abaixo_do_minimo', 1)
+            ->assertJsonPath('valor_imobilizado', 100);
+
+        $this->assertCount(1, $response->json('saldo_por_unidade'));
+        $this->assertCount(1, $response->json('saldos_atuais'));
+        $this->assertSame($unidadeA->id, $response->json('saldos_atuais.0.unidade_id'));
+    }
+
+    public function test_usuario_com_unidade_atribuida_nao_acessa_outra_unidade(): void
+    {
+        $unidadePermitida = Unidade::factory()->create();
+        $unidadeBloqueada = Unidade::factory()->create();
+        $this->usuario->unidades()->attach($unidadePermitida);
+
+        $this->getJson("/api/dashboard?unidade_id={$unidadeBloqueada->id}")
+            ->assertForbidden();
+    }
 }
