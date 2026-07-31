@@ -1,37 +1,49 @@
+# syntax=docker/dockerfile:1.7
+
+ARG NODE_VERSION=22
+ARG PHP_VERSION=8.4
+
 FROM composer:2 AS vendor
 
 WORKDIR /app
 
+# Dependencies change much less frequently than the application source. Keeping
+# this layer isolated prevents PHP dependencies from being reinstalled on every
+# code change, while the cache mount accelerates lock-file updates.
 COPY composer.json composer.lock ./
-RUN composer install \
-    --no-dev \
-    --no-interaction \
-    --no-progress \
-    --prefer-dist \
-    --optimize-autoloader \
-    --no-scripts
+RUN --mount=type=cache,id=estoquehub-composer,target=/tmp/composer-cache,sharing=locked \
+    COMPOSER_CACHE_DIR=/tmp/composer-cache composer install \
+        --no-dev \
+        --no-interaction \
+        --no-progress \
+        --prefer-dist \
+        --no-scripts \
+        --no-autoloader
 
 COPY app ./app
 COPY artisan ./artisan
 COPY bootstrap ./bootstrap
 COPY config ./config
 COPY database ./database
-COPY public ./public
-COPY resources ./resources
 COPY routes ./routes
-COPY storage ./storage
-COPY tests ./tests
-COPY phpunit.xml ./phpunit.xml
-COPY package.json vite.config.ts tsconfig.json ./
 
 RUN rm -f bootstrap/cache/*.php \
-    && php artisan package:discover --ansi
+    && composer dump-autoload \
+        --no-dev \
+        --classmap-authoritative \
+        --no-interaction
+
+# Static/frontend sources do not affect Composer's classmap. Keeping them after
+# dump-autoload avoids PHP work when only the interface changes.
+COPY public ./public
+COPY resources ./resources
+COPY storage ./storage
 
 
-FROM node:22-bookworm AS node
+FROM node:${NODE_VERSION}-bookworm AS node
 
 
-FROM php:8.4-cli-bookworm AS frontend
+FROM php:${PHP_VERSION}-cli-bookworm AS frontend
 
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
@@ -41,19 +53,31 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 
 WORKDIR /app
 
+# npm ci is intentionally placed before the application source. Editing React,
+# CSS or Blade files now rebuilds only Wayfinder/Vite instead of node_modules.
+COPY package.json package-lock.json .npmrc ./
+RUN --mount=type=cache,id=estoquehub-npm,target=/root/.npm,sharing=locked \
+    npm ci \
+        --ignore-scripts \
+        --no-audit \
+        --no-fund \
+        --prefer-offline
+
 COPY --from=vendor /app ./
-RUN npm install \
-    && php artisan wayfinder:generate --with-form \
-    && npm run build
+COPY vite.config.ts tsconfig.json ./
+
+RUN npm run build
 
 
-FROM php:8.4-apache-bookworm AS runtime
+FROM php:${PHP_VERSION}-apache-bookworm AS runtime
 
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 
-RUN apt-get update \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update \
     && apt-get install -y --no-install-recommends libonig-dev libsqlite3-dev \
-    && docker-php-ext-install mbstring pdo_sqlite \
+    && docker-php-ext-install -j"$(nproc)" mbstring pdo_sqlite opcache \
     && a2enmod rewrite \
     && sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
         /etc/apache2/sites-available/*.conf \
@@ -61,27 +85,18 @@ RUN apt-get update \
         /etc/apache2/conf-available/*.conf \
     && sed -ri -e 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf \
     && printf 'ServerName localhost\n' > /etc/apache2/conf-available/server-name.conf \
-    && a2enconf server-name \
-    && rm -rf /var/lib/apt/lists/*
+    && a2enconf server-name
+
+COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/zz-estoquehub-opcache.ini
+COPY docker/entrypoint.sh /usr/local/bin/estoquehub-entrypoint
 
 WORKDIR /var/www/html
 
-COPY --from=vendor /app/app ./app
-COPY --from=vendor /app/artisan ./artisan
-COPY --from=vendor /app/bootstrap ./bootstrap
-COPY --from=vendor /app/config ./config
-COPY --from=vendor /app/composer.json ./composer.json
-COPY --from=vendor /app/database ./database
-COPY --from=vendor /app/public ./public
-COPY --from=vendor /app/resources ./resources
-COPY --from=vendor /app/routes ./routes
-COPY --from=vendor /app/storage ./storage
-COPY --from=vendor /app/tests ./tests
-COPY --from=vendor /app/phpunit.xml ./phpunit.xml
-COPY --from=vendor /app/vendor ./vendor
+COPY --from=vendor /app ./
 COPY --from=frontend /app/public/build ./public/build
 
-RUN mkdir -p \
+RUN chmod 755 /usr/local/bin/estoquehub-entrypoint \
+    && mkdir -p \
         storage/app/private \
         storage/app/public \
         storage/framework/cache \
@@ -93,7 +108,8 @@ RUN mkdir -p \
 
 EXPOSE 80
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+HEALTHCHECK --interval=5s --timeout=3s --start-period=5s --retries=6 \
     CMD php -r "exit(@file_get_contents('http://127.0.0.1/up') === false ? 1 : 0);"
 
-CMD ["sh", "-lc", "set -eu; database_path=\"${DB_DATABASE:-/var/lib/laravel/database.sqlite}\"; mkdir -p \"$(dirname \"$database_path\")\"; if [ ! -f \"$database_path\" ]; then touch \"$database_path\"; fi; if [ -z \"${APP_KEY:-}\" ]; then key_file=\"/var/lib/laravel/.app-key\"; if [ ! -s \"$key_file\" ]; then php artisan key:generate --show --no-ansi > \"$key_file\"; fi; export APP_KEY=\"$(cat \"$key_file\")\"; fi; php artisan migrate --force --no-interaction; chown -R www-data:www-data \"$(dirname \"$database_path\")\" storage bootstrap/cache; exec apache2-foreground"]
+ENTRYPOINT ["estoquehub-entrypoint"]
+CMD ["apache2-foreground"]

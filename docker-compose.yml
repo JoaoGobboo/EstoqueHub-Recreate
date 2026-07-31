@@ -1,8 +1,14 @@
 services:
   app:
+    image: "${DOCKER_IMAGE:-estoquehub-recreate-app:latest}"
     build:
       context: .
       dockerfile: Dockerfile
+      target: runtime
+      args:
+        NODE_VERSION: "${DOCKER_NODE_VERSION:-22}"
+        PHP_VERSION: "${DOCKER_PHP_VERSION:-8.4}"
+    init: true
     ports:
       - "${APP_PORT:-3000}:80"
     environment:
@@ -26,6 +32,12 @@ services:
     volumes:
       - laravel-data:/var/lib/laravel
     restart: unless-stopped
+    stop_grace_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   laravel-data:
