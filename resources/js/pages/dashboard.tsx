@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
+import { DashboardMovementDialog } from '@/components/dashboard-movement-dialog';
 import { useDashboardScope } from '@/contexts/dashboard-scope-context';
 import { dashboard } from '@/routes';
 
@@ -89,22 +90,22 @@ function MetricCard({
     value,
     footer,
     badge,
-    badgeClass = 'bg-[#14532d] text-[#bbf7d0]',
+    badgeClass = 'bg-[var(--dashboard-success-bg)] text-[var(--dashboard-success-text)]',
     compact = false,
-    valueClass = 'text-[#fafafa]',
+    valueClass = 'text-[var(--dashboard-text)]',
     loading = false,
 }: Metric & { loading?: boolean }) {
     return (
-        <div className="flex min-h-[112px] min-w-0 flex-col gap-2 rounded-lg border border-[#27272a] bg-[#18181b] p-4 sm:min-h-[128px] sm:p-5">
+        <div className="flex min-h-[112px] min-w-0 flex-col gap-2 rounded-lg border border-[var(--dashboard-border)] bg-[var(--dashboard-surface)] p-4 transition-colors sm:min-h-[128px] sm:p-5">
             <div className="flex items-start justify-between gap-2">
-                <span className="truncate text-xs leading-tight font-semibold text-[#e4e4e7] sm:text-sm">
+                <span className="truncate text-xs leading-tight font-semibold text-[var(--dashboard-text)] sm:text-sm">
                     {title}
                 </span>
                 {loading ? (
                     <DashboardSkeleton className="h-5 w-14 shrink-0 rounded-full sm:w-16" />
                 ) : (
                     <span
-                        className={`dashboard-data-reveal shrink-0 rounded-full border border-[#3f3f46] px-2 py-1 text-[10px] leading-none sm:text-xs ${badgeClass}`}
+                        className={`dashboard-data-reveal shrink-0 rounded-full border border-[var(--dashboard-border-strong)] px-2 py-1 text-[10px] leading-none sm:text-xs ${badgeClass}`}
                     >
                         {badge}
                     </span>
@@ -126,7 +127,7 @@ function MetricCard({
             {loading ? (
                 <DashboardSkeleton className="h-3 w-3/4 rounded" />
             ) : (
-                <span className="dashboard-data-reveal truncate text-xs leading-tight text-[#a1a1aa]">
+                <span className="dashboard-data-reveal truncate text-xs leading-tight text-[var(--dashboard-text-muted)]">
                     {footer}
                 </span>
             )}
@@ -145,7 +146,7 @@ const chartSkeletonHeights = [
 function DashboardChartSkeleton() {
     return (
         <div className="w-full max-w-full min-w-0 [scrollbar-gutter:stable] overflow-x-auto overscroll-x-contain">
-            <div className="flex h-[220px] min-w-[700px] items-end justify-between gap-4 border-b border-l border-[#3f3f46] px-4 sm:h-[250px] sm:gap-8 sm:px-6">
+            <div className="flex h-[220px] min-w-[700px] items-end justify-between gap-4 border-b border-l border-[var(--dashboard-border-strong)] px-4 sm:h-[250px] sm:gap-8 sm:px-6">
                 {chartSkeletonHeights.map((bars, groupIndex) => (
                     <div
                         key={groupIndex}
@@ -205,7 +206,9 @@ function DashboardTableSkeleton() {
                 <div
                     key={rowIndex}
                     className={`grid h-14 grid-cols-[minmax(140px,0.75fr)_minmax(260px,1.7fr)_minmax(220px,1.25fr)_minmax(88px,0.45fr)_minmax(88px,0.45fr)] items-center gap-x-6 px-5 sm:px-6 ${
-                        rowIndex < 6 ? 'border-b border-[#27272a]' : ''
+                        rowIndex < 6
+                            ? 'border-b border-[var(--dashboard-border)]'
+                            : ''
                     }`}
                 >
                     {[48, 132, 148, 42, 42].map((width, cellIndex) => (
@@ -235,6 +238,8 @@ export default function Dashboard() {
         useState<DashboardRequestError | null>(null);
     const [filter, setFilter] = useState('');
     const [refreshKey, setRefreshKey] = useState(0);
+    const [movementDialogOpen, setMovementDialogOpen] = useState(false);
+    const [movementDialogSession, setMovementDialogSession] = useState(0);
     const activeSnapshot = snapshot?.scopeKey === scopeKey ? snapshot : null;
     const error =
         requestError?.scopeKey === scopeKey ? requestError.message : null;
@@ -355,24 +360,27 @@ export default function Dashboard() {
                 value: currencyFormatter.format(data.valor_consumido_mes),
                 footer: 'valor das sa\u00eddas registradas',
                 badge: 'sa\u00eddas',
-                badgeClass: 'bg-[#4c0519] text-[#fecdd3]',
+                badgeClass:
+                    'bg-[var(--dashboard-danger-bg)] text-[var(--dashboard-danger-text)]',
                 compact: true,
-                valueClass: 'text-[#fb7185]',
+                valueClass: 'text-[var(--dashboard-danger-text)]',
             },
             {
                 title: 'Abaixo do m\u00ednimo',
                 value: `${numberFormatter.format(data.abaixo_do_minimo)} itens`,
                 footer: 'ver alertas \u2192',
                 badge: 'alerta',
-                badgeClass: 'bg-[#7f1d1d] text-[#fecaca]',
-                valueClass: 'text-[#fb7185]',
+                badgeClass:
+                    'bg-[var(--dashboard-danger-bg)] text-[var(--dashboard-danger-text)]',
+                valueClass: 'text-[var(--dashboard-danger-text)]',
             },
             {
                 title: 'Valor imobilizado',
                 value: currencyFormatter.format(data.valor_imobilizado),
                 footer: 'saldo atual x valor unit\u00e1rio',
                 badge: 'atual',
-                badgeClass: 'bg-[#27272a] text-[#d4d4d8]',
+                badgeClass:
+                    'bg-[var(--dashboard-surface-muted)] text-[var(--dashboard-text-secondary)]',
                 compact: true,
             },
         ];
@@ -406,7 +414,7 @@ export default function Dashboard() {
         <>
             <Head title="Dashboard" />
             <div
-                className="min-h-full w-full min-w-0 bg-[#09090b] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8"
+                className="min-h-full w-full min-w-0 bg-[var(--dashboard-canvas)] px-4 py-5 transition-colors sm:px-6 sm:py-6 lg:px-8 lg:py-8"
                 aria-busy={isDashboardLoading}
             >
                 <span className="sr-only" role="status" aria-live="polite">
@@ -417,29 +425,35 @@ export default function Dashboard() {
                 <div className="mx-auto flex w-full max-w-[1600px] min-w-0 flex-col gap-6">
                     <header className="flex min-h-12 flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                         <div className="flex flex-col gap-1">
-                            <h1 className="text-xl leading-tight font-bold text-[#fafafa] sm:text-2xl lg:text-3xl">
+                            <h1 className="text-xl leading-tight font-bold text-[var(--dashboard-text)] sm:text-2xl lg:text-3xl">
                                 Vis&atilde;o geral do estoque
                             </h1>
                             {isDashboardLoading ? (
                                 <DashboardSkeleton className="h-3.5 w-64 max-w-full rounded" />
                             ) : (
-                                <p className="dashboard-data-reveal text-xs text-[#a1a1aa] sm:text-sm">
+                                <p className="dashboard-data-reveal text-xs text-[var(--dashboard-text-muted)] sm:text-sm">
                                     {data
                                         ? `${numberFormatter.format(data.skus_ativos)} SKUs ativos em ${scopeName} - atualizado ${updatedAt?.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) ?? 'agora'}`
                                         : 'Dados do estoque indisponíveis.'}
                                 </p>
                             )}
                         </div>
-                        <a
-                            href="#"
-                            className="flex h-9 items-center justify-center rounded-md bg-[#f58220] px-3 text-xs font-extrabold text-[#052e16] transition-colors hover:bg-[#fb923c] sm:h-10 sm:px-4 sm:text-sm"
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMovementDialogSession(
+                                    (session) => session + 1,
+                                );
+                                setMovementDialogOpen(true);
+                            }}
+                            className="flex h-9 items-center justify-center rounded-md bg-[var(--dashboard-accent)] px-3 text-xs font-extrabold text-[var(--dashboard-accent-foreground)] transition-colors hover:bg-[var(--dashboard-accent-hover)] sm:h-10 sm:px-4 sm:text-sm"
                         >
                             + Nova movimenta&ccedil;&atilde;o
-                        </a>
+                        </button>
                     </header>
 
                     {error && (
-                        <div className="flex flex-col items-start justify-between gap-3 rounded-lg border border-red-900 bg-red-950/40 p-4 text-sm text-red-200 sm:flex-row sm:items-center">
+                        <div className="flex flex-col items-start justify-between gap-3 rounded-lg border border-[var(--dashboard-danger-border)] bg-[var(--dashboard-danger-bg)] p-4 text-sm text-[var(--dashboard-danger-text)] sm:flex-row sm:items-center">
                             <span className="flex items-center gap-2">
                                 <AlertCircle className="size-4" />
                                 {error}
@@ -450,7 +464,7 @@ export default function Dashboard() {
                                     setRequestError(null);
                                     setRefreshKey((key) => key + 1);
                                 }}
-                                className="inline-flex items-center gap-2 font-semibold hover:text-white"
+                                className="inline-flex items-center gap-2 font-semibold transition-opacity hover:opacity-75"
                             >
                                 <RefreshCw className="size-4" />
                                 Tentar novamente
@@ -468,22 +482,22 @@ export default function Dashboard() {
                         ))}
                     </section>
 
-                    <section className="flex min-h-[340px] max-w-full min-w-0 flex-col gap-5 overflow-hidden rounded-xl border border-[#27272a] bg-[#18181b] p-4 sm:min-h-[390px] sm:p-5 lg:p-6">
+                    <section className="flex min-h-[340px] max-w-full min-w-0 flex-col gap-5 overflow-hidden rounded-xl border border-[var(--dashboard-border)] bg-[var(--dashboard-surface)] p-4 transition-colors sm:min-h-[390px] sm:p-5 lg:p-6">
                         <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
                             <div className="flex flex-col gap-1">
-                                <h2 className="text-sm font-bold text-[#fafafa] sm:text-base">
+                                <h2 className="text-sm font-bold text-[var(--dashboard-text)] sm:text-base">
                                     Itens mais solicitados por unidade
                                 </h2>
-                                <p className="text-xs text-[#a1a1aa] sm:text-sm">
+                                <p className="text-xs text-[var(--dashboard-text-muted)] sm:text-sm">
                                     Sa&iacute;das acumuladas nos &uacute;ltimos
                                     30 dias.
                                 </p>
                             </div>
-                            <div className="flex overflow-hidden rounded-md border border-[#3f3f46] text-xs sm:text-sm">
-                                <span className="bg-[#27272a] px-3 py-2 text-[#fafafa]">
+                            <div className="flex overflow-hidden rounded-md border border-[var(--dashboard-border-strong)] text-xs sm:text-sm">
+                                <span className="bg-[var(--dashboard-surface-muted)] px-3 py-2 text-[var(--dashboard-text)]">
                                     30 dias
                                 </span>
-                                <span className="px-3 py-2 text-[#71717a]">
+                                <span className="px-3 py-2 text-[var(--dashboard-text-subtle)]">
                                     Dados reais
                                 </span>
                             </div>
@@ -498,7 +512,7 @@ export default function Dashboard() {
                             <>
                                 {chartItems.length > 0 && chartMaximum > 0 ? (
                                     <div className="dashboard-data-reveal w-full max-w-full min-w-0 [scrollbar-gutter:stable] overflow-x-auto overscroll-x-contain">
-                                        <div className="flex h-[220px] min-w-[700px] items-end justify-between gap-4 border-b border-l border-[#3f3f46] px-4 sm:h-[250px] sm:gap-8 sm:px-6">
+                                        <div className="flex h-[220px] min-w-[700px] items-end justify-between gap-4 border-b border-l border-[var(--dashboard-border-strong)] px-4 sm:h-[250px] sm:gap-8 sm:px-6">
                                             {chartItems.map(
                                                 (item, itemIndex) => (
                                                     <div
@@ -542,7 +556,7 @@ export default function Dashboard() {
                                                                 },
                                                             )}
                                                         </div>
-                                                        <span className="w-28 text-center text-[10px] leading-tight text-[#a1a1aa] sm:w-36 sm:text-xs">
+                                                        <span className="w-28 text-center text-[10px] leading-tight text-[var(--dashboard-text-muted)] sm:w-36 sm:text-xs">
                                                             {item.nome}
                                                         </span>
                                                     </div>
@@ -551,14 +565,14 @@ export default function Dashboard() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="dashboard-data-reveal flex min-h-[220px] items-center justify-center rounded-lg border border-dashed border-[#3f3f46] text-sm text-[#71717a]">
+                                    <div className="dashboard-data-reveal flex min-h-[220px] items-center justify-center rounded-lg border border-dashed border-[var(--dashboard-border-strong)] text-sm text-[var(--dashboard-text-subtle)]">
                                         Nenhuma sa&iacute;da registrada nos
                                         &uacute;ltimos 30 dias.
                                     </div>
                                 )}
 
                                 {chartSeries.length > 0 && (
-                                    <div className="dashboard-data-reveal flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs font-bold text-[#d4d4d8] sm:text-sm">
+                                    <div className="dashboard-data-reveal flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs font-bold text-[var(--dashboard-text-secondary)] sm:text-sm">
                                         {chartSeries.map((series, index) => (
                                             <span
                                                 key={series.unidade}
@@ -583,13 +597,13 @@ export default function Dashboard() {
                         )}
                     </section>
 
-                    <section className="max-w-full min-w-0 overflow-hidden rounded-xl border border-[#27272a] bg-[#18181b]">
-                        <div className="flex min-w-0 flex-col items-start justify-between gap-4 border-b border-[#27272a] p-4 sm:flex-row sm:items-center sm:p-5">
+                    <section className="max-w-full min-w-0 overflow-hidden rounded-xl border border-[var(--dashboard-border)] bg-[var(--dashboard-surface)] transition-colors">
+                        <div className="flex min-w-0 flex-col items-start justify-between gap-4 border-b border-[var(--dashboard-border)] p-4 sm:flex-row sm:items-center sm:p-5">
                             <div className="flex min-w-0 flex-col gap-1">
-                                <h2 className="text-sm font-bold text-[#fafafa] sm:text-base">
+                                <h2 className="text-sm font-bold text-[var(--dashboard-text)] sm:text-base">
                                     Saldo atual por item e unidade
                                 </h2>
-                                <p className="text-xs text-[#a1a1aa] sm:text-sm">
+                                <p className="text-xs text-[var(--dashboard-text-muted)] sm:text-sm">
                                     Posi&ccedil;&atilde;o consolidada do
                                     estoque.
                                 </p>
@@ -601,13 +615,13 @@ export default function Dashboard() {
                                     setFilter(event.target.value)
                                 }
                                 placeholder="Filtrar item ou unidade..."
-                                className="h-9 w-full min-w-0 rounded-md border border-[#3f3f46] bg-[#09090b] px-3 text-xs text-[#e4e4e7] outline-none placeholder:text-[#71717a] focus:border-[#71717a] sm:w-64 sm:text-sm"
+                                className="h-9 w-full min-w-0 rounded-md border border-[var(--dashboard-border-strong)] bg-[var(--dashboard-input)] px-3 text-xs text-[var(--dashboard-text)] transition-colors outline-none placeholder:text-[var(--dashboard-text-subtle)] focus:border-[var(--dashboard-accent)] sm:w-64 sm:text-sm"
                             />
                         </div>
 
                         <div className="max-h-[32rem] w-full max-w-full min-w-0 [scrollbar-gutter:stable] overflow-auto overscroll-contain">
                             <div className="w-full min-w-[960px] text-sm">
-                                <div className="sticky top-0 z-10 grid h-11 grid-cols-[minmax(140px,0.75fr)_minmax(260px,1.7fr)_minmax(220px,1.25fr)_minmax(88px,0.45fr)_minmax(88px,0.45fr)] items-center gap-x-6 border-b border-[#27272a] bg-[#09090b] px-5 text-[11px] font-semibold tracking-wide text-[#a1a1aa] sm:px-6 sm:text-xs">
+                                <div className="sticky top-0 z-10 grid h-11 grid-cols-[minmax(140px,0.75fr)_minmax(260px,1.7fr)_minmax(220px,1.25fr)_minmax(88px,0.45fr)_minmax(88px,0.45fr)] items-center gap-x-6 border-b border-[var(--dashboard-border)] bg-[var(--dashboard-panel)] px-5 text-[11px] font-semibold tracking-wide text-[var(--dashboard-text-muted)] sm:px-6 sm:text-xs">
                                     <span>SKU</span>
                                     <span>ITEM</span>
                                     <span>UNIDADE</span>
@@ -624,29 +638,29 @@ export default function Dashboard() {
                                             (balance, index) => (
                                                 <div
                                                     key={`${balance.item_id}-${balance.unidade_id}`}
-                                                    className={`dashboard-data-reveal grid min-h-14 grid-cols-[minmax(140px,0.75fr)_minmax(260px,1.7fr)_minmax(220px,1.25fr)_minmax(88px,0.45fr)_minmax(88px,0.45fr)] items-center gap-x-6 px-5 py-3 text-xs leading-relaxed text-[#e4e4e7] sm:px-6 ${
+                                                    className={`dashboard-data-reveal grid min-h-14 grid-cols-[minmax(140px,0.75fr)_minmax(260px,1.7fr)_minmax(220px,1.25fr)_minmax(88px,0.45fr)_minmax(88px,0.45fr)] items-center gap-x-6 px-5 py-3 text-xs leading-relaxed text-[var(--dashboard-text)] sm:px-6 ${
                                                         index <
                                                         filteredBalances.length -
                                                             1
-                                                            ? 'border-b border-[#27272a]'
+                                                            ? 'border-b border-[var(--dashboard-border)]'
                                                             : ''
                                                     }`}
                                                 >
                                                     <span
                                                         title={balance.sku}
-                                                        className="min-w-0 truncate font-medium text-[#d4d4d8]"
+                                                        className="min-w-0 truncate font-medium text-[var(--dashboard-text-secondary)]"
                                                     >
                                                         {balance.sku}
                                                     </span>
                                                     <span
                                                         title={balance.item}
-                                                        className="min-w-0 truncate pr-2 font-medium text-[#fafafa]"
+                                                        className="min-w-0 truncate pr-2 font-medium text-[var(--dashboard-text)]"
                                                     >
                                                         {balance.item}
                                                     </span>
                                                     <span
                                                         title={balance.unidade}
-                                                        className="min-w-0 truncate pr-2 text-[#d4d4d8]"
+                                                        className="min-w-0 truncate pr-2 text-[var(--dashboard-text-secondary)]"
                                                     >
                                                         {balance.unidade}
                                                     </span>
@@ -654,7 +668,7 @@ export default function Dashboard() {
                                                         className={`text-right tabular-nums ${
                                                             balance.quantidade <
                                                             balance.estoque_minimo
-                                                                ? 'font-semibold text-[#fb7185]'
+                                                                ? 'font-semibold text-[var(--dashboard-danger-text)]'
                                                                 : ''
                                                         }`}
                                                     >
@@ -672,7 +686,7 @@ export default function Dashboard() {
                                         )}
                                         {data &&
                                             filteredBalances.length === 0 && (
-                                                <div className="flex h-20 items-center justify-center px-4 text-xs text-[#71717a]">
+                                                <div className="flex h-20 items-center justify-center px-4 text-xs text-[var(--dashboard-text-subtle)]">
                                                     Nenhum saldo encontrado para
                                                     este filtro.
                                                 </div>
@@ -684,6 +698,16 @@ export default function Dashboard() {
                     </section>
                 </div>
             </div>
+
+            <DashboardMovementDialog
+                key={movementDialogSession}
+                open={movementDialogOpen}
+                onOpenChange={setMovementDialogOpen}
+                onCreated={() => {
+                    setRequestError(null);
+                    setRefreshKey((key) => key + 1);
+                }}
+            />
         </>
     );
 }
