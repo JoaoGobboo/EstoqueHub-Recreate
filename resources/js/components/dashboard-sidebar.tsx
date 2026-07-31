@@ -81,7 +81,7 @@ export function DashboardAccountSwitcher({
             <DropdownMenuTrigger asChild>
                 <button
                     type="button"
-                    className={`flex items-center gap-3 rounded-md text-left transition-colors hover:bg-[#18181b] data-[state=open]:bg-[#18181b] ${
+                    className={`flex items-center gap-3 rounded-md text-left transition-colors hover:bg-[var(--dashboard-surface-hover)] data-[state=open]:bg-[var(--dashboard-surface-hover)] ${
                         compact
                             ? 'h-10 max-w-[calc(100vw-4.75rem)] px-2'
                             : 'h-9 w-full px-3'
@@ -89,7 +89,7 @@ export function DashboardAccountSwitcher({
                     aria-label={`Selecionar sede. Contexto atual: ${scopeName}`}
                     data-test="dashboard-scope-trigger"
                 >
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#fafafa] text-xs font-extrabold text-[#09090b]">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[var(--dashboard-accent)] text-xs font-extrabold text-[var(--dashboard-accent-foreground)]">
                         {selectedUnit ? (
                             <UnitGlyph
                                 unitName={selectedUnit.nome}
@@ -102,33 +102,33 @@ export function DashboardAccountSwitcher({
                     <span className="min-w-0 truncate text-sm leading-tight font-semibold">
                         {ready ? scopeName : 'Carregando sedes...'}
                     </span>
-                    <ChevronDown className="ml-auto size-4 shrink-0 text-[#a1a1aa]" />
+                    <ChevronDown className="ml-auto size-4 shrink-0 text-[var(--dashboard-text-muted)]" />
                 </button>
             </DropdownMenuTrigger>
 
             <DropdownMenuContent
                 align="start"
                 sideOffset={6}
-                className="max-h-[min(24rem,var(--radix-dropdown-menu-content-available-height))] w-[var(--radix-dropdown-menu-trigger-width)] min-w-56 overflow-y-auto border-[#3f3f46] bg-[#18181b] p-1.5 text-[#d4d4d8] shadow-xl"
+                className="max-h-[min(24rem,var(--radix-dropdown-menu-content-available-height))] w-[var(--radix-dropdown-menu-trigger-width)] min-w-56 overflow-y-auto border-[var(--dashboard-border-strong)] bg-[var(--dashboard-surface)] p-1.5 text-[var(--dashboard-text-secondary)] shadow-xl"
             >
-                <DropdownMenuLabel className="px-2 py-1 text-[10px] font-bold tracking-wide text-[#71717a]">
+                <DropdownMenuLabel className="px-2 py-1 text-[10px] font-bold tracking-wide text-[var(--dashboard-text-subtle)]">
                     TROCAR CONTA
                 </DropdownMenuLabel>
 
                 {canSelectGroup && (
                     <DropdownMenuItem
                         onSelect={() => selectUnit(null)}
-                        className={`h-10 gap-2.5 px-2 text-xs focus:bg-[#27272a] focus:text-[#fafafa] ${
+                        className={`h-10 gap-2.5 px-2 text-xs focus:bg-[var(--dashboard-surface-muted)] focus:text-[var(--dashboard-text)] ${
                             selectedUnitId === null
-                                ? 'bg-[#27272a] font-semibold text-[#fafafa]'
+                                ? 'bg-[var(--dashboard-surface-active)] font-semibold text-[var(--dashboard-text)]'
                                 : ''
                         }`}
                         data-test="dashboard-scope-group"
                     >
                         {selectedUnitId === null ? (
-                            <Check className="size-4 text-[#86efac]" />
+                            <Check className="size-4 text-[var(--dashboard-success-text)]" />
                         ) : (
-                            <Building2 className="size-4 text-[#a1a1aa]" />
+                            <Building2 className="size-4 text-[var(--dashboard-text-muted)]" />
                         )}
                         <span className="truncate">Grupo Positivo</span>
                     </DropdownMenuItem>
@@ -141,19 +141,19 @@ export function DashboardAccountSwitcher({
                         <DropdownMenuItem
                             key={unit.id}
                             onSelect={() => selectUnit(unit.id)}
-                            className={`h-10 gap-2.5 px-2 text-xs focus:bg-[#27272a] focus:text-[#fafafa] ${
+                            className={`h-10 gap-2.5 px-2 text-xs focus:bg-[var(--dashboard-surface-muted)] focus:text-[var(--dashboard-text)] ${
                                 selected
-                                    ? 'bg-[#27272a] font-semibold text-[#fafafa]'
+                                    ? 'bg-[var(--dashboard-surface-active)] font-semibold text-[var(--dashboard-text)]'
                                     : ''
                             }`}
                             data-test={`dashboard-scope-unit-${unit.id}`}
                         >
                             {selected ? (
-                                <Check className="size-4 text-[#86efac]" />
+                                <Check className="size-4 text-[var(--dashboard-success-text)]" />
                             ) : (
                                 <UnitGlyph
                                     unitName={unit.nome}
-                                    className="size-4 text-[#a1a1aa]"
+                                    className="size-4 text-[var(--dashboard-text-muted)]"
                                 />
                             )}
                             <span className="truncate">{unit.nome}</span>
@@ -178,22 +178,22 @@ export function DashboardSidebar({
     return (
         <aside
             aria-label="Navegação principal"
-            className="fixed inset-y-0 left-0 z-30 hidden h-dvh w-56 flex-col overflow-hidden border-r border-[#27272a] bg-[#09090b] p-4 md:flex lg:w-60 xl:w-64"
+            className="fixed inset-y-0 left-0 z-30 hidden h-dvh w-56 flex-col overflow-hidden border-r border-[var(--dashboard-border)] bg-[var(--dashboard-sidebar)] p-4 transition-colors duration-200 md:flex lg:w-60 xl:w-64"
         >
             <div className="flex h-10 shrink-0 items-center">
                 <DashboardAccountSwitcher />
             </div>
 
             <nav className="mt-6 flex min-h-0 flex-1 [scrollbar-gutter:stable] flex-col gap-1 overflow-y-auto overscroll-contain">
-                <span className="flex h-7 shrink-0 items-center px-3 text-xs font-medium">
+                <span className="flex h-7 shrink-0 items-center px-3 text-xs font-medium text-[var(--dashboard-text-subtle)]">
                     OPERAÇÃO
                 </span>
                 {navigation.map(({ label, icon: Icon, href }) => {
                     const active = label === activeItem;
                     const className = `${itemClassName} ${
                         active
-                            ? 'bg-[#27272a] font-semibold text-[#fafafa]'
-                            : 'text-[#d4d4d8] hover:bg-[#18181b]'
+                            ? 'bg-[var(--dashboard-surface-active)] font-semibold text-[var(--dashboard-text)]'
+                            : 'text-[var(--dashboard-text-secondary)] hover:bg-[var(--dashboard-surface-hover)]'
                     }`;
 
                     if (href) {
@@ -230,18 +230,18 @@ export function DashboardSidebar({
                 })}
             </nav>
 
-            <div className="flex shrink-0 flex-col gap-1 border-t border-[#27272a] pt-4">
+            <div className="flex shrink-0 flex-col gap-1 border-t border-[var(--dashboard-border)] pt-4">
                 <button
                     type="button"
                     onClick={onOpenSettings}
-                    className={`${itemClassName} text-[#d4d4d8] hover:bg-[#18181b]`}
+                    className={`${itemClassName} text-[var(--dashboard-text-secondary)] hover:bg-[var(--dashboard-surface-hover)]`}
                 >
                     <Settings className="size-4 shrink-0" strokeWidth={1.6} />
                     <span className="truncate">Configurações</span>
                 </button>
                 <button
                     type="button"
-                    className={`${itemClassName} text-[#d4d4d8] hover:bg-[#18181b]`}
+                    className={`${itemClassName} text-[var(--dashboard-text-secondary)] hover:bg-[var(--dashboard-surface-hover)]`}
                 >
                     <CircleHelp className="size-4 shrink-0" strokeWidth={1.6} />
                     <span className="truncate">Ajuda</span>

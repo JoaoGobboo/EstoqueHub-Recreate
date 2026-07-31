@@ -20,16 +20,16 @@ function DashboardShell({ children }: { children: ReactNode }) {
     const [settingsOpen, setSettingsOpen] = useState(false);
 
     return (
-        <div className="h-dvh w-full overflow-hidden bg-[#09090b] [font-family:Inter,ui-sans-serif,system-ui,sans-serif] text-[#fafafa]">
+        <div className="dashboard-theme h-dvh w-full overflow-hidden bg-[var(--dashboard-canvas)] [font-family:Inter,ui-sans-serif,system-ui,sans-serif] text-[var(--dashboard-text)] transition-colors duration-200">
             <DashboardSidebar onOpenSettings={() => setSettingsOpen(true)} />
 
             <div className="flex h-full min-w-0 flex-col md:pl-56 lg:pl-60 xl:pl-64">
-                <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#27272a] bg-[#09090b] px-4 md:hidden">
+                <header className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--dashboard-border)] bg-[var(--dashboard-sidebar)] px-4 md:hidden">
                     <DashboardAccountSwitcher compact />
                     <button
                         type="button"
                         onClick={() => setSettingsOpen(true)}
-                        className="flex size-9 shrink-0 items-center justify-center rounded-md text-[#d4d4d8] hover:bg-[#18181b]"
+                        className="flex size-9 shrink-0 items-center justify-center rounded-md text-[var(--dashboard-text-secondary)] transition-colors hover:bg-[var(--dashboard-surface-hover)]"
                         aria-label="Abrir configurações"
                     >
                         <Settings className="size-5" />

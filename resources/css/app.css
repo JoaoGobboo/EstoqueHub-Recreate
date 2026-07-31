@@ -95,6 +95,37 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.87 0 0);
+
+    /* Dashboard palette: cool neutrals with the Positivo orange as accent. */
+    --dashboard-canvas: #f3f6fa;
+    --dashboard-sidebar: #ffffff;
+    --dashboard-surface: #ffffff;
+    --dashboard-panel: #f8fafc;
+    --dashboard-surface-muted: #edf2f7;
+    --dashboard-surface-hover: #f1f4f8;
+    --dashboard-surface-active: #e6ebf2;
+    --dashboard-input: #f8fafc;
+    --dashboard-border: #dce3eb;
+    --dashboard-border-strong: #bdc8d5;
+    --dashboard-text: #18212f;
+    --dashboard-text-secondary: #3f4d61;
+    --dashboard-text-muted: #657287;
+    --dashboard-text-subtle: #8792a2;
+    --dashboard-accent: #f58220;
+    --dashboard-accent-hover: #dc6c11;
+    --dashboard-accent-soft: #fff1e5;
+    --dashboard-accent-foreground: #2d1707;
+    --dashboard-success-bg: #dcfce7;
+    --dashboard-success-text: #166534;
+    --dashboard-success-border: #86efac;
+    --dashboard-danger-bg: #fff1f2;
+    --dashboard-danger-text: #be123c;
+    --dashboard-danger-border: #fecdd3;
+    --dashboard-switch-track: #cbd5e1;
+    --dashboard-skeleton-base: #dfe6ee;
+    --dashboard-skeleton-mid: #edf2f7;
+    --dashboard-skeleton-highlight: #ffffff;
+    --dashboard-shadow: 0 20px 55px rgb(30 41 59 / 0.16);
 }
 
 .dark {
@@ -130,6 +161,36 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(0.269 0 0);
     --sidebar-ring: oklch(0.439 0 0);
+
+    --dashboard-canvas: #09090b;
+    --dashboard-sidebar: #0c0c0f;
+    --dashboard-surface: #18181b;
+    --dashboard-panel: #09090b;
+    --dashboard-surface-muted: #27272a;
+    --dashboard-surface-hover: #202024;
+    --dashboard-surface-active: #303035;
+    --dashboard-input: #0f0f12;
+    --dashboard-border: #27272a;
+    --dashboard-border-strong: #3f3f46;
+    --dashboard-text: #fafafa;
+    --dashboard-text-secondary: #d4d4d8;
+    --dashboard-text-muted: #a1a1aa;
+    --dashboard-text-subtle: #71717a;
+    --dashboard-accent: #f58220;
+    --dashboard-accent-hover: #fb923c;
+    --dashboard-accent-soft: #3b2414;
+    --dashboard-accent-foreground: #2d1707;
+    --dashboard-success-bg: #14532d;
+    --dashboard-success-text: #bbf7d0;
+    --dashboard-success-border: #166534;
+    --dashboard-danger-bg: #4c0519;
+    --dashboard-danger-text: #fecdd3;
+    --dashboard-danger-border: #881337;
+    --dashboard-switch-track: #3f3f46;
+    --dashboard-skeleton-base: #27272a;
+    --dashboard-skeleton-mid: #3f3f46;
+    --dashboard-skeleton-highlight: #52525b;
+    --dashboard-shadow: 0 20px 55px rgb(0 0 0 / 0.45);
 }
 
 /* Keep dashboard data transitions local so the surrounding layout never jumps. */
@@ -156,15 +217,21 @@
 }
 
 @layer components {
+    .dashboard-theme {
+        background-color: var(--dashboard-canvas);
+        color: var(--dashboard-text);
+        scrollbar-color: var(--dashboard-border-strong) var(--dashboard-canvas);
+    }
+
     .dashboard-skeleton {
-        background-color: #27272a;
+        background-color: var(--dashboard-skeleton-base);
         background-image: linear-gradient(
             100deg,
-            #27272a 20%,
-            #3f3f46 45%,
-            #52525b 50%,
-            #3f3f46 55%,
-            #27272a 80%
+            var(--dashboard-skeleton-base) 20%,
+            var(--dashboard-skeleton-mid) 45%,
+            var(--dashboard-skeleton-highlight) 50%,
+            var(--dashboard-skeleton-mid) 55%,
+            var(--dashboard-skeleton-base) 80%
         );
         background-size: 220% 100%;
         animation: dashboard-shimmer 1.35s ease-in-out infinite;
