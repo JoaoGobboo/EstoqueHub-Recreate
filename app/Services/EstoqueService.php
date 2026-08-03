@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AlertaResolucao;
 use App\Models\Item;
 use App\Models\RequisicaoCompra;
 use App\Models\SaldoPorUnidade;
@@ -29,6 +30,31 @@ class EstoqueService
             ->get()
             ->filter(fn (SaldoPorUnidade $saldo) => $saldo->quantidade < $saldo->item->estoque_minimo)
             ->sortBy(fn (SaldoPorUnidade $saldo) => $saldo->quantidade / max($saldo->item->estoque_minimo, 1))
+            ->values();
+    }
+
+    /**
+     * Retorna somente alertas que ainda não foram resolvidos para a fotografia
+     * atual de saldo e estoque mínimo.
+     *
+     * @return Collection<int, SaldoPorUnidade>
+     */
+    public function alertasAtivos(): Collection
+    {
+        $saldos = $this->itensAbaixoDoMinimo();
+        $resolucoes = AlertaResolucao::query()
+            ->whereIn('item_id', $saldos->pluck('item_id')->unique())
+            ->get()
+            ->keyBy(fn (AlertaResolucao $resolucao) => "{$resolucao->item_id}:{$resolucao->unidade_id}");
+
+        return $saldos
+            ->filter(function (SaldoPorUnidade $saldo) use ($resolucoes) {
+                $resolucao = $resolucoes->get("{$saldo->item_id}:{$saldo->unidade_id}");
+
+                return $resolucao === null
+                    || $resolucao->quantidade_resolvida !== $saldo->quantidade
+                    || $resolucao->estoque_minimo_resolvido !== $saldo->item->estoque_minimo;
+            })
             ->values();
     }
 

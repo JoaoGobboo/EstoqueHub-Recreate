@@ -29,6 +29,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('saldos', [SaldoController::class, 'index']);
 
     Route::get('alertas', [AlertaController::class, 'index']);
+    Route::post('alertas/resolver', [AlertaController::class, 'resolver']);
 
     Route::get('sugestoes', [SugestaoController::class, 'index']);
     Route::post('sugestoes/aprovar-transferencia', [SugestaoController::class, 'aprovarTransferencia']);

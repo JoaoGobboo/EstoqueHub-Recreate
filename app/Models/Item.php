@@ -23,6 +23,15 @@ class Item extends Model
         'estoque_minimo',
     ];
 
+    protected static function booted(): void
+    {
+        static::updated(function (Item $item) {
+            if ($item->wasChanged('estoque_minimo')) {
+                AlertaResolucao::where('item_id', $item->id)->delete();
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [

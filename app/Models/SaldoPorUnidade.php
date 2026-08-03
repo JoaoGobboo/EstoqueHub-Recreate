@@ -20,6 +20,21 @@ class SaldoPorUnidade extends Model
         'quantidade',
     ];
 
+    protected static function booted(): void
+    {
+        static::updated(function (SaldoPorUnidade $saldo) {
+            if ($saldo->wasChanged('quantidade')) {
+                AlertaResolucao::where('item_id', $saldo->item_id)
+                    ->where('unidade_id', $saldo->unidade_id)
+                    ->delete();
+            }
+        });
+
+        static::deleted(fn (SaldoPorUnidade $saldo) => AlertaResolucao::where('item_id', $saldo->item_id)
+            ->where('unidade_id', $saldo->unidade_id)
+            ->delete());
+    }
+
     protected function casts(): array
     {
         return [
