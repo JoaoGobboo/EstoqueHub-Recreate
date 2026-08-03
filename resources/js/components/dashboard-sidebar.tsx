@@ -38,9 +38,9 @@ type DashboardSidebarProps = {
 const navigation: NavigationItem[] = [
     { label: 'Dashboard', icon: LayoutGrid, href: dashboard().url },
     { label: 'Movimentação', icon: PackageOpen, href: '/movimentacao' },
-    { label: 'Sugestões', icon: Lightbulb },
-    { label: 'Alertas', icon: TriangleAlert },
-    { label: 'Histórico', icon: History },
+    { label: 'Sugestões', icon: Lightbulb, href: '/sugestoes' },
+    { label: 'Alertas', icon: TriangleAlert, href: '/alertas' },
+    { label: 'Histórico', icon: History, href: '/historico' },
     { label: 'Análise de consumo', icon: ChartNoAxesColumnIncreasing },
 ];
 

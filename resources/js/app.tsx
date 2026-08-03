@@ -18,7 +18,13 @@ createInertiaApp({
                 return null;
             case name === 'auth/login':
                 return AuthLoginLayout;
-            case name === 'dashboard' || name === 'movimentacao':
+            case [
+                'dashboard',
+                'movimentacao',
+                'sugestoes',
+                'alertas',
+                'historico',
+            ].includes(name):
                 return DashboardLayout;
             case name.startsWith('auth/'):
                 return AuthLayout;
