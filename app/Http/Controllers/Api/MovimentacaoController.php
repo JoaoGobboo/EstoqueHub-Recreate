@@ -22,6 +22,20 @@ class MovimentacaoController extends Controller
     {
         $movimentacoes = Movimentacao::query()
             ->with(['item', 'unidadeOrigem', 'unidadeDestino', 'usuario'])
+            ->when($request->filled('busca'), function ($query) use ($request) {
+                $busca = (string) $request->string('busca')->trim();
+
+                $query->where(function ($query) use ($busca) {
+                    $query->where('motivo', 'like', "%{$busca}%")
+                        ->orWhereHas('item', fn ($itemQuery) => $itemQuery
+                            ->where('nome', 'like', "%{$busca}%")
+                            ->orWhere('sku', 'like', "%{$busca}%"))
+                        ->orWhereHas('unidadeOrigem', fn ($unidadeQuery) => $unidadeQuery
+                            ->where('nome', 'like', "%{$busca}%"))
+                        ->orWhereHas('unidadeDestino', fn ($unidadeQuery) => $unidadeQuery
+                            ->where('nome', 'like', "%{$busca}%"));
+                });
+            })
             ->when($request->filled('tipo'), fn ($query) => $query->where('tipo', $request->string('tipo')))
             ->when($request->filled('item_id'), fn ($query) => $query->where('item_id', $request->integer('item_id')))
             ->when($request->filled('unidade_id'), function ($query) use ($request) {

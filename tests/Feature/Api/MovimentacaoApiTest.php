@@ -151,4 +151,49 @@ class MovimentacaoApiTest extends ApiTestCase
         $this->assertCount(1, $response->json('data'));
         $this->assertSame('saida', $response->json('data.0.tipo'));
     }
+
+    public function test_lista_movimentacoes_com_busca_por_item_unidade_ou_documento(): void
+    {
+        $itemEncontrado = Item::factory()->create([
+            'nome' => 'Projetor Epson',
+            'sku' => 'PROJ-001',
+        ]);
+        $itemIgnorado = Item::factory()->create([
+            'nome' => 'Cadeira escolar',
+            'sku' => 'CAD-002',
+        ]);
+        $unidadeEncontrada = Unidade::factory()->create([
+            'nome' => 'Colégio Jardim',
+        ]);
+        $unidadeIgnorada = Unidade::factory()->create([
+            'nome' => 'Colégio Centro',
+        ]);
+
+        $this->postJson('/api/movimentacoes', [
+            'tipo' => 'entrada',
+            'item_id' => $itemEncontrado->id,
+            'unidade_id' => $unidadeEncontrada->id,
+            'quantidade' => 10,
+            'motivo' => 'NF-e 7788',
+        ])->assertCreated();
+
+        $this->postJson('/api/movimentacoes', [
+            'tipo' => 'entrada',
+            'item_id' => $itemIgnorado->id,
+            'unidade_id' => $unidadeIgnorada->id,
+            'quantidade' => 5,
+            'motivo' => 'Inventário inicial',
+        ])->assertCreated();
+
+        foreach (['Projetor', 'PROJ-001', 'Jardim', '7788'] as $busca) {
+            $response = $this->getJson('/api/movimentacoes?busca='.urlencode($busca));
+
+            $response->assertOk();
+            $this->assertCount(1, $response->json('data'));
+            $this->assertSame(
+                $itemEncontrado->id,
+                $response->json('data.0.item.id'),
+            );
+        }
+    }
 }
