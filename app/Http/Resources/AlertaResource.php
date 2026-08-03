@@ -28,6 +28,7 @@ class AlertaResource extends JsonResource
                 $percentual <= 70 => 'Alto',
                 default => 'Médio',
             },
+            'updated_at' => $this->updated_at,
         ];
     }
 }

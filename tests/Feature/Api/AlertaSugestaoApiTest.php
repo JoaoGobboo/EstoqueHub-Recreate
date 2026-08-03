@@ -24,6 +24,71 @@ class AlertaSugestaoApiTest extends ApiTestCase
         $this->assertSame(20, $response->json('data.0.percentual'));
     }
 
+    public function test_alerta_resolvido_e_ocultado_ate_o_saldo_mudar(): void
+    {
+        $item = Item::factory()->create(['estoque_minimo' => 100]);
+        $unidade = Unidade::factory()->create();
+        SaldoPorUnidade::create([
+            'item_id' => $item->id,
+            'unidade_id' => $unidade->id,
+            'quantidade' => 20,
+        ]);
+
+        $this->postJson('/api/alertas/resolver', [
+            'item_id' => $item->id,
+            'unidade_id' => $unidade->id,
+        ])->assertNoContent();
+
+        $this->getJson('/api/alertas')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $this->postJson('/api/movimentacoes', [
+            'tipo' => 'entrada',
+            'item_id' => $item->id,
+            'unidade_id' => $unidade->id,
+            'quantidade' => 5,
+        ])->assertCreated();
+
+        $this->assertDatabaseMissing('alerta_resolucoes', [
+            'item_id' => $item->id,
+            'unidade_id' => $unidade->id,
+        ]);
+        $this->getJson('/api/alertas')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.quantidade', 25);
+    }
+
+    public function test_mudanca_no_estoque_minimo_reabre_alerta_resolvido(): void
+    {
+        $item = Item::factory()->create(['estoque_minimo' => 100]);
+        $unidade = Unidade::factory()->create();
+        SaldoPorUnidade::create([
+            'item_id' => $item->id,
+            'unidade_id' => $unidade->id,
+            'quantidade' => 20,
+        ]);
+
+        $this->postJson('/api/alertas/resolver', [
+            'item_id' => $item->id,
+            'unidade_id' => $unidade->id,
+        ])->assertNoContent();
+
+        $this->putJson("/api/itens/{$item->id}", [
+            'estoque_minimo' => 110,
+        ])->assertOk();
+
+        $this->assertDatabaseMissing('alerta_resolucoes', [
+            'item_id' => $item->id,
+            'unidade_id' => $unidade->id,
+        ]);
+        $this->getJson('/api/alertas')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.estoque_minimo', 110);
+    }
+
     public function test_lista_sugestoes_de_transferencia(): void
     {
         $item = Item::factory()->create(['estoque_minimo' => 50]);

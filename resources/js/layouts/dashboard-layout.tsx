@@ -22,7 +22,13 @@ function DashboardShell({ children }: { children: ReactNode }) {
     const { url } = usePage();
     const activeItem = url.startsWith('/movimentacao')
         ? 'Movimentação'
-        : 'Dashboard';
+        : url.startsWith('/sugestoes')
+          ? 'Sugestões'
+          : url.startsWith('/alertas')
+            ? 'Alertas'
+            : url.startsWith('/historico')
+              ? 'Histórico'
+              : 'Dashboard';
 
     return (
         <div className="dashboard-theme h-dvh w-full overflow-hidden bg-[var(--dashboard-canvas)] [font-family:Inter,ui-sans-serif,system-ui,sans-serif] text-[var(--dashboard-text)] transition-colors duration-200">
