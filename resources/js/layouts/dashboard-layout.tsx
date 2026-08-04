@@ -28,7 +28,9 @@ function DashboardShell({ children }: { children: ReactNode }) {
             ? 'Alertas'
             : url.startsWith('/historico')
               ? 'Histórico'
-              : 'Dashboard';
+              : url.startsWith('/analise-consumo')
+                ? 'Análise de consumo'
+                : 'Dashboard';
 
     return (
         <div className="dashboard-theme h-dvh w-full overflow-hidden bg-[var(--dashboard-canvas)] [font-family:Inter,ui-sans-serif,system-ui,sans-serif] text-[var(--dashboard-text)] transition-colors duration-200">

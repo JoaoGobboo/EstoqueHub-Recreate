@@ -18,6 +18,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('sugestoes', 'sugestoes')->name('sugestoes');
     Route::inertia('alertas', 'alertas')->name('alertas');
     Route::inertia('historico', 'historico')->name('historico');
+    Route::inertia('analise-consumo', 'analise-consumo')->name('analise-consumo');
 });
 
 require __DIR__.'/settings.php';

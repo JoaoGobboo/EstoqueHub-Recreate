@@ -24,6 +24,7 @@ createInertiaApp({
                 'sugestoes',
                 'alertas',
                 'historico',
+                'analise-consumo',
             ].includes(name):
                 return DashboardLayout;
             case name.startsWith('auth/'):
@@ -48,5 +49,5 @@ createInertiaApp({
     },
 });
 
-// This will set light / dark mode on load...
+// setar tema claro e escuro...
 initializeTheme();

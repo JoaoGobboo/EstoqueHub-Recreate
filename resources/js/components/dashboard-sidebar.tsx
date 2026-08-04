@@ -41,7 +41,11 @@ const navigation: NavigationItem[] = [
     { label: 'Sugestões', icon: Lightbulb, href: '/sugestoes' },
     { label: 'Alertas', icon: TriangleAlert, href: '/alertas' },
     { label: 'Histórico', icon: History, href: '/historico' },
-    { label: 'Análise de consumo', icon: ChartNoAxesColumnIncreasing },
+    {
+        label: 'Análise de consumo',
+        icon: ChartNoAxesColumnIncreasing,
+        href: '/analise-consumo',
+    },
 ];
 
 const itemClassName =
