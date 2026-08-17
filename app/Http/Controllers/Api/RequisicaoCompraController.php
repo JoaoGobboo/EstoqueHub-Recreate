@@ -7,11 +7,13 @@ use App\Http\Requests\StoreRequisicaoCompraRequest;
 use App\Http\Resources\RequisicaoCompraResource;
 use App\Models\RequisicaoCompra;
 use App\Services\RequisicaoCompraService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
 
 class RequisicaoCompraController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): JsonResource
     {
         $requisicoes = RequisicaoCompra::query()
             ->with(['item', 'unidade', 'usuario'])
@@ -22,9 +24,11 @@ class RequisicaoCompraController extends Controller
         return RequisicaoCompraResource::collection($requisicoes);
     }
 
-    public function store(StoreRequisicaoCompraRequest $request, RequisicaoCompraService $service)
+    public function store(StoreRequisicaoCompraRequest $request, RequisicaoCompraService $service): JsonResponse
     {
-        $requisicao = $service->criar($request->validated(), $request->user());
+        /** @var array{item_id: int, unidade_id: int, quantidade: int, motivo?: ?string} $dados */
+        $dados = $request->validated();
+        $requisicao = $service->criar($dados, $request->user());
 
         return (new RequisicaoCompraResource($requisicao))->response()->setStatusCode(201);
     }

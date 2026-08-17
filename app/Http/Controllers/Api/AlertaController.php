@@ -8,6 +8,8 @@ use App\Http\Resources\AlertaResource;
 use App\Models\AlertaResolucao;
 use App\Models\SaldoPorUnidade;
 use App\Services\EstoqueService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Response;
 use Illuminate\Validation\ValidationException;
 
@@ -18,7 +20,7 @@ class AlertaController extends Controller
     /**
      * Lista os saldos abaixo do estoque mínimo, do mais crítico ao menos crítico.
      */
-    public function index()
+    public function index(): JsonResource|JsonResponse|Response
     {
         return AlertaResource::collection($this->estoqueService->alertasAtivos());
     }

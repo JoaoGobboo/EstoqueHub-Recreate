@@ -9,7 +9,9 @@ use App\Models\Item;
 use App\Models\Movimentacao;
 use App\Models\Unidade;
 use App\Services\MovimentacaoService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
 
 class MovimentacaoController extends Controller
 {
@@ -18,7 +20,7 @@ class MovimentacaoController extends Controller
     /**
      * Display a listing of the resource, with filters for histórico.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResource
     {
         $movimentacoes = Movimentacao::query()
             ->with(['item', 'unidadeOrigem', 'unidadeDestino', 'usuario'])
@@ -54,34 +56,36 @@ class MovimentacaoController extends Controller
     /**
      * Registra uma entrada, saída ou transferência, delegando ao MovimentacaoService.
      */
-    public function store(StoreMovimentacaoRequest $request)
+    public function store(StoreMovimentacaoRequest $request): JsonResponse
     {
         $dados = $request->validated();
-        $item = Item::findOrFail($dados['item_id']);
+        $item = Item::findOrFail((int) $dados['item_id']);
+        $tipo = (string) $dados['tipo'];
 
-        $movimentacao = match ($dados['tipo']) {
+        $movimentacao = match ($tipo) {
             'entrada' => $this->movimentacaoService->registrarEntrada(
                 item: $item,
-                unidade: Unidade::findOrFail($dados['unidade_id']),
+                unidade: $this->unidade((int) $dados['unidade_id']),
                 quantidade: $dados['quantidade'],
                 motivo: $dados['motivo'] ?? null,
                 usuario: $request->user(),
             ),
             'saida' => $this->movimentacaoService->registrarSaida(
                 item: $item,
-                unidade: Unidade::findOrFail($dados['unidade_id']),
+                unidade: $this->unidade((int) $dados['unidade_id']),
                 quantidade: $dados['quantidade'],
                 motivo: $dados['motivo'] ?? null,
                 usuario: $request->user(),
             ),
             'transferencia' => $this->movimentacaoService->registrarTransferencia(
                 item: $item,
-                origem: Unidade::findOrFail($dados['unidade_origem_id']),
-                destino: Unidade::findOrFail($dados['unidade_destino_id']),
+                origem: $this->unidade((int) $dados['unidade_origem_id']),
+                destino: $this->unidade((int) $dados['unidade_destino_id']),
                 quantidade: $dados['quantidade'],
                 motivo: $dados['motivo'] ?? null,
                 usuario: $request->user(),
             ),
+            default => throw new \LogicException('Tipo de movimentação inválido.'),
         };
 
         $movimentacao->load(['item', 'unidadeOrigem', 'unidadeDestino', 'usuario']);
@@ -92,7 +96,14 @@ class MovimentacaoController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Movimentacao $movimentacao)
+    private function unidade(int $id): Unidade
+    {
+        $unidade = Unidade::findOrFail($id);
+
+        return $unidade;
+    }
+
+    public function show(Movimentacao $movimentacao): JsonResource
     {
         $movimentacao->load(['item', 'unidadeOrigem', 'unidadeDestino', 'usuario']);
 

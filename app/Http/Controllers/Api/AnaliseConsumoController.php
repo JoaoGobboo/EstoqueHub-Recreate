@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\AnaliseConsumoService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AnaliseConsumoController extends Controller
 {
     public function __construct(private readonly AnaliseConsumoService $service) {}
 
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'data_inicio' => ['nullable', 'date'],

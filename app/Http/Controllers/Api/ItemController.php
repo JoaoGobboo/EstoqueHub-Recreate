@@ -9,7 +9,9 @@ use App\Http\Resources\ItemResource;
 use App\Models\Item;
 use App\Models\SaldoPorUnidade;
 use App\Models\Unidade;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\DB;
 
 class ItemController extends Controller
@@ -17,7 +19,7 @@ class ItemController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResource
     {
         $itens = Item::query()
             ->withSum('saldos', 'quantidade')
@@ -36,7 +38,7 @@ class ItemController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreItemRequest $request)
+    public function store(StoreItemRequest $request): JsonResponse
     {
         $item = DB::transaction(function () use ($request) {
             $item = Item::create($request->validated());
@@ -62,7 +64,7 @@ class ItemController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Item $item)
+    public function show(Item $item): JsonResource
     {
         $item->load(['saldos.unidade']);
 
@@ -72,7 +74,7 @@ class ItemController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateItemRequest $request, Item $item)
+    public function update(UpdateItemRequest $request, Item $item): JsonResource
     {
         $item->update($request->validated());
 

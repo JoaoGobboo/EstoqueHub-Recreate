@@ -66,15 +66,16 @@ class EstoqueService
      * Para cada saldo abaixo do mínimo, sugere transferência de uma unidade com
      * excedente do mesmo item, ou compra quando não há excedente suficiente.
      *
-     * @return Collection<int, array{
+     * @return array<int, array{
      *     tipo: string,
      *     item: Item,
      *     unidade_origem: ?Unidade,
      *     unidade_destino: Unidade,
      *     quantidade: int,
+     *     requisicao_compra: ?RequisicaoCompra,
      * }>
      */
-    public function gerarSugestoes(): Collection
+    public function gerarSugestoes(): array
     {
         $deficits = $this->itensAbaixoDoMinimo();
         $itemIds = $deficits->pluck('item_id')->unique();
@@ -93,10 +94,13 @@ class EstoqueService
             ->get()
             ->groupBy('item_id');
 
-        return $deficits->map(function (SaldoPorUnidade $deficit) use ($requisicoesPendentes, $saldosPorItem) {
+        $sugestoes = $deficits->map(function (SaldoPorUnidade $deficit) use ($requisicoesPendentes, $saldosPorItem) {
             $item = $deficit->item;
             $unidadeDeficit = $deficit->unidade;
+            assert($item instanceof Item);
+            assert($unidadeDeficit instanceof Unidade);
             $faltam = $item->estoque_minimo - $deficit->quantidade;
+            /** @var RequisicaoCompra|null $requisicaoPendente */
             $requisicaoPendente = $requisicoesPendentes->get("{$item->id}:{$unidadeDeficit->id}");
 
             $origem = $saldosPorItem->get($item->id, collect())
@@ -110,10 +114,13 @@ class EstoqueService
                 ->first();
 
             if ($origem && $origem['excedente'] >= $faltam) {
+                $unidadeOrigem = $origem['saldo']->unidade;
+                assert($unidadeOrigem instanceof Unidade);
+
                 return [
                     'tipo' => 'transferencia',
                     'item' => $item,
-                    'unidade_origem' => $origem['saldo']->unidade,
+                    'unidade_origem' => $unidadeOrigem,
                     'unidade_destino' => $unidadeDeficit,
                     'quantidade' => $faltam,
                     'requisicao_compra' => null,
@@ -129,5 +136,7 @@ class EstoqueService
                 'requisicao_compra' => $requisicaoPendente,
             ];
         });
+
+        return $sugestoes->all();
     }
 }

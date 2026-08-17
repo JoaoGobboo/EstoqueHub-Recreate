@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\MovimentacaoResource;
 use App\Services\DashboardService;
 use App\Services\UnidadeAccessService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -18,7 +19,7 @@ class DashboardController extends Controller
     /**
      * Resumo do estado atual do estoque para o painel principal.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'unidade_id' => ['nullable', 'integer', 'exists:unidades,id'],

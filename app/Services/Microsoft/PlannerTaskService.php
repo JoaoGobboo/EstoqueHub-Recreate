@@ -118,7 +118,9 @@ class PlannerTaskService
     {
         $resposta = $this->chamarGraph('GET', "https://graph.microsoft.com/v1.0/planner/plans/{$planId}/buckets", $token);
 
-        $bucket = collect($resposta->json('value'))->first(fn (array $b) => $b['name'] === $bucketName);
+        /** @var array<int, array{id: string, name: string}> $buckets */
+        $buckets = $resposta->json('value', []);
+        $bucket = collect($buckets)->first(fn (array $b) => $b['name'] === $bucketName);
 
         return $bucket['id'] ?? null;
     }
@@ -237,6 +239,9 @@ class PlannerTaskService
     }
 
     /**
+     * @param  array<string, mixed>|null  $body
+     * @param  array<string, string|null>  $headers
+     *
      * Executa a chamada ao Graph com renovação silenciosa em 401 (uma vez),
      * backoff exponencial em 5xx e respeito ao Retry-After em 429 — poucas
      * tentativas, para não segurar a requisição HTTP síncrona por muito tempo.

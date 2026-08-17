@@ -6,13 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\SaldoPorUnidadeResource;
 use App\Models\SaldoPorUnidade;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
 
 class SaldoController extends Controller
 {
     /**
      * Display a listing of the resource, filtrável por item e/ou unidade.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResource
     {
         $saldos = SaldoPorUnidade::query()
             ->with(['item', 'unidade'])
