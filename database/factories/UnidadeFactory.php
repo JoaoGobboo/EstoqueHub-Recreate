@@ -19,7 +19,7 @@ class UnidadeFactory extends Factory
     {
         return [
             'nome' => $this->faker->unique()->city().' - '.$this->faker->randomElement(['Suporte', 'TI Corporativo', 'Fábrica', 'Filial']),
-            'localizacao' => $this->faker->city().', '.$this->faker->stateAbbr(),
+            'localizacao' => $this->faker->city().', '.$this->faker->randomElement(['SP', 'PR', 'RS', 'MG']),
             'responsavel' => $this->faker->name(),
         ];
     }

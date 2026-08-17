@@ -18,5 +18,8 @@ interface ChamadoConnectorInterface
      */
     public function listarPendentes(): Collection;
 
-    public function marcarProcessado(ChamadoPendente $chamado): void;
+    /**
+     * Reivindica o chamado pendente exatamente uma vez.
+     */
+    public function tentarMarcarProcessado(ChamadoPendente $chamado): bool;
 }

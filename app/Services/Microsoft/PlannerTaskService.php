@@ -6,7 +6,6 @@ use App\Exceptions\PlannerNotConnectedException;
 use App\Exceptions\PlannerReconnectRequiredException;
 use App\Models\RequisicaoCompra;
 use Illuminate\Http\Client\Response;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
@@ -22,6 +21,7 @@ class PlannerTaskService
     public function __construct(
         private readonly MicrosoftPlannerAccountService $contas,
         private readonly GraphMailService $email,
+        private readonly GraphClient $graph,
     ) {}
 
     public function sincronizar(RequisicaoCompra $requisicao): void
@@ -118,7 +118,9 @@ class PlannerTaskService
     {
         $resposta = $this->chamarGraph('GET', "https://graph.microsoft.com/v1.0/planner/plans/{$planId}/buckets", $token);
 
-        $bucket = collect($resposta->json('value'))->first(fn (array $b) => $b['name'] === $bucketName);
+        /** @var array<int, array{id: string, name: string}> $buckets */
+        $buckets = $resposta->json('value', []);
+        $bucket = collect($buckets)->first(fn (array $b) => $b['name'] === $bucketName);
 
         return $bucket['id'] ?? null;
     }
@@ -237,48 +239,35 @@ class PlannerTaskService
     }
 
     /**
+     * @param  array<string, mixed>|null  $body
+     * @param  array<string, string|null>  $headers
+     *
      * Executa a chamada ao Graph com renovação silenciosa em 401 (uma vez),
      * backoff exponencial em 5xx e respeito ao Retry-After em 429 — poucas
      * tentativas, para não segurar a requisição HTTP síncrona por muito tempo.
      */
     private function chamarGraph(string $method, string $url, string $token, ?array $body = null, array $headers = []): Response
     {
-        $tentativasFalhaTransitoria = 0;
         $jaTentouRenovar = false;
 
         while (true) {
-            $resposta = Http::withToken($token)
-                ->withHeaders(array_filter($headers, fn ($v) => $v !== null))
-                ->send($method, $url, $body === null ? [] : ['json' => $body]);
+            try {
+                return $this->graph->request(
+                    method: $method,
+                    url: $url,
+                    token: $token,
+                    body: $body,
+                    headers: $headers,
+                    contexto: 'comunicar com o Microsoft Planner',
+                );
+            } catch (GraphException $e) {
+                if ($e->status !== 401 || $jaTentouRenovar) {
+                    throw $e;
+                }
 
-            if ($resposta->successful()) {
-                return $resposta;
-            }
-
-            $status = $resposta->status();
-
-            if ($status === 401 && ! $jaTentouRenovar) {
                 $jaTentouRenovar = true;
                 $token = $this->contas->forcarRenovacao();
-
-                continue;
             }
-
-            if ($status === 429 && $tentativasFalhaTransitoria < 2) {
-                sleep(min((int) ($resposta->header('Retry-After') ?: 1), 5));
-                $tentativasFalhaTransitoria++;
-
-                continue;
-            }
-
-            if (in_array($status, [500, 502, 503, 504], true) && $tentativasFalhaTransitoria < 2) {
-                usleep((2 ** $tentativasFalhaTransitoria) * 200_000);
-                $tentativasFalhaTransitoria++;
-
-                continue;
-            }
-
-            throw GraphException::fromResponse($resposta, 'comunicar com o Microsoft Planner');
         }
     }
 

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
+use TheNetworg\OAuth2\Client\Token\AccessToken as AzureAccessToken;
 
 /**
  * Login opcional "Entrar com Microsoft" para usuários internos, além do
@@ -67,6 +68,10 @@ class MicrosoftLoginService
         $token = $provider->getAccessToken('authorization_code', [
             'code' => (string) $request->query('code'),
         ]);
+
+        if (! $token instanceof AzureAccessToken) {
+            throw new RuntimeException('Token Microsoft inválido.');
+        }
 
         $claims = $token->getIdTokenClaims() ?? [];
 

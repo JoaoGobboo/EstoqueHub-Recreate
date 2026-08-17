@@ -10,7 +10,9 @@ use App\Models\Item;
 use App\Models\SaldoPorUnidade;
 use App\Models\Unidade;
 use App\Services\UnidadeAccessService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\DB;
 
 class UnidadeController extends Controller
@@ -20,7 +22,7 @@ class UnidadeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResource
     {
         $unidadeIds = $this->unidadeAccessService->idsFor($request->user());
 
@@ -35,7 +37,7 @@ class UnidadeController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreUnidadeRequest $request)
+    public function store(StoreUnidadeRequest $request): JsonResponse
     {
         $unidade = DB::transaction(function () use ($request) {
             $unidade = Unidade::create($request->validated());
@@ -61,7 +63,7 @@ class UnidadeController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Unidade $unidade)
+    public function show(Unidade $unidade): JsonResource
     {
         return new UnidadeResource($unidade);
     }
@@ -69,7 +71,7 @@ class UnidadeController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateUnidadeRequest $request, Unidade $unidade)
+    public function update(UpdateUnidadeRequest $request, Unidade $unidade): JsonResource
     {
         $unidade->update($request->validated());
 

@@ -20,14 +20,14 @@ class MovimentacaoService
         return DB::transaction(function () use ($item, $unidade, $quantidade, $motivo, $usuario) {
             $this->creditarSaldo($item, $unidade, $quantidade);
 
-            return Movimentacao::create([
-                'item_id' => $item->id,
-                'unidade_destino_id' => $unidade->id,
-                'tipo' => 'entrada',
-                'quantidade' => $quantidade,
-                'motivo' => $motivo,
-                'user_id' => $usuario?->id,
-            ]);
+            return $this->criarMovimentacao(
+                item: $item,
+                tipo: 'entrada',
+                quantidade: $quantidade,
+                unidadeDestinoId: $unidade->id,
+                motivo: $motivo,
+                usuario: $usuario,
+            );
         });
     }
 
@@ -41,14 +41,14 @@ class MovimentacaoService
         return DB::transaction(function () use ($item, $unidade, $quantidade, $motivo, $usuario) {
             $this->debitarSaldo($item, $unidade, $quantidade);
 
-            return Movimentacao::create([
-                'item_id' => $item->id,
-                'unidade_origem_id' => $unidade->id,
-                'tipo' => 'saida',
-                'quantidade' => $quantidade,
-                'motivo' => $motivo,
-                'user_id' => $usuario?->id,
-            ]);
+            return $this->criarMovimentacao(
+                item: $item,
+                tipo: 'saida',
+                quantidade: $quantidade,
+                unidadeOrigemId: $unidade->id,
+                motivo: $motivo,
+                usuario: $usuario,
+            );
         });
     }
 
@@ -67,16 +67,36 @@ class MovimentacaoService
             $this->debitarSaldo($item, $origem, $quantidade);
             $this->creditarSaldo($item, $destino, $quantidade);
 
-            return Movimentacao::create([
-                'item_id' => $item->id,
-                'unidade_origem_id' => $origem->id,
-                'unidade_destino_id' => $destino->id,
-                'tipo' => 'transferencia',
-                'quantidade' => $quantidade,
-                'motivo' => $motivo,
-                'user_id' => $usuario?->id,
-            ]);
+            return $this->criarMovimentacao(
+                item: $item,
+                tipo: 'transferencia',
+                quantidade: $quantidade,
+                unidadeOrigemId: $origem->id,
+                unidadeDestinoId: $destino->id,
+                motivo: $motivo,
+                usuario: $usuario,
+            );
         });
+    }
+
+    private function criarMovimentacao(
+        Item $item,
+        string $tipo,
+        int $quantidade,
+        ?int $unidadeOrigemId = null,
+        ?int $unidadeDestinoId = null,
+        ?string $motivo = null,
+        ?User $usuario = null,
+    ): Movimentacao {
+        return Movimentacao::create([
+            'item_id' => $item->id,
+            'unidade_origem_id' => $unidadeOrigemId,
+            'unidade_destino_id' => $unidadeDestinoId,
+            'tipo' => $tipo,
+            'quantidade' => $quantidade,
+            'motivo' => $motivo,
+            'user_id' => $usuario?->id,
+        ]);
     }
 
     private function validarQuantidade(int $quantidade): void

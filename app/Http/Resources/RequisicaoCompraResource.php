@@ -2,9 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\RequisicaoCompra;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin RequisicaoCompra */
 class RequisicaoCompraResource extends JsonResource
 {
     /**
