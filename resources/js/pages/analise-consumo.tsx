@@ -15,27 +15,17 @@ import {
     AnalysisSkeleton,
     MetricCard,
 } from '@/features/consumption/metric-card';
+import type { ItemWithCategory, Unidade } from '@/types/inventory';
 
-type Item = {
-    id: number;
-    sku: string;
-    nome: string;
-    categoria?: string | null;
-};
-
-type Unit = {
-    id: number;
-    nome: string;
-};
 
 type ConsumedItem = {
-    item: Item;
+    item: ItemWithCategory;
     quantidade: number;
     valor: number;
 };
 
 type UnitConsumption = {
-    unidade: Unit | null;
+    unidade: Unidade | null;
     quantidade: number;
 };
 

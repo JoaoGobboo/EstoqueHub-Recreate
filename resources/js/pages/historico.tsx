@@ -20,21 +20,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useDashboardScope } from '@/contexts/dashboard-scope-context';
 import { FilterSelect } from '@/features/history/filter-select';
+import type { PaginationMeta } from '@/types/api';
+import type { Item, Unidade } from '@/types/inventory';
 
 type MovementType = 'entrada' | 'saida' | 'transferencia';
 type MovementTypeFilter = 'all' | MovementType;
 type PeriodFilter = 'all' | 'today' | '7d' | '30d';
 
-type Item = {
-    id: number;
-    nome: string;
-    sku: string;
-};
-
-type Unit = {
-    id: number;
-    nome: string;
-};
 
 type Movement = {
     id: number;
@@ -42,19 +34,10 @@ type Movement = {
     quantidade: number;
     motivo: string | null;
     item: Item;
-    unidade_origem: Unit | null;
-    unidade_destino: Unit | null;
+    unidade_origem: Unidade | null;
+    unidade_destino: Unidade | null;
     usuario: string | null;
     created_at: string;
-};
-
-type PaginationMeta = {
-    current_page: number;
-    from: number | null;
-    last_page: number;
-    per_page: number;
-    to: number | null;
-    total: number;
 };
 
 type MovementResponse = {

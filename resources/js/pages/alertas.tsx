@@ -16,13 +16,9 @@ import { toast } from 'sonner';
 import { useDashboardScope } from '@/contexts/dashboard-scope-context';
 import { AlertDetail } from '@/features/alerts/alert-detail';
 import type { AlertPresentation, StockAlert } from '@/features/alerts/types';
+import type { ApiError } from '@/types/api';
 
 type SeverityFilter = 'all' | 'attention' | 'critical' | 'informative';
-
-type ApiError = {
-    errors?: Record<string, string[]>;
-    message?: string;
-};
 
 type SummaryCardProps = {
     detail: string;

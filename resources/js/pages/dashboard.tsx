@@ -12,41 +12,7 @@ import {
 } from '@/features/dashboard/dashboard-placeholders';
 import type { Metric } from '@/features/dashboard/dashboard-placeholders';
 import { dashboard } from '@/routes';
-
-type DashboardData = {
-    itens_em_estoque: number;
-    skus_ativos: number;
-    movimentacoes_hoje: {
-        total: number;
-        entradas: number;
-        saidas: number;
-        transferencias: number;
-    };
-    movimentacoes_mes: number;
-    valor_consumido_mes: number;
-    abaixo_do_minimo: number;
-    valor_imobilizado: number;
-    consumo_30_dias: {
-        itens: Array<{
-            id: number;
-            nome: string;
-            sku: string;
-        }>;
-        series: Array<{
-            unidade: string;
-            quantidades: number[];
-        }>;
-    };
-    saldos_atuais: Array<{
-        item_id: number;
-        item: string;
-        sku: string;
-        unidade_id: number;
-        unidade: string;
-        quantidade: number;
-        estoque_minimo: number;
-    }>;
-};
+import type { DashboardData } from '@/types/api';
 
 type DashboardSnapshot = {
     scopeKey: string;

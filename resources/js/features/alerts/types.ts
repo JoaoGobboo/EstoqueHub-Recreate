@@ -1,15 +1,8 @@
 import type { LucideIcon } from 'lucide-react';
+import type { Item, Unidade } from '@/types/inventory';
 
-export type AlertItem = {
-    id: number;
-    nome: string;
-    sku: string;
-};
-
-export type Unit = {
-    id: number;
-    nome: string;
-};
+export type AlertItem = Item;
+export type Unit = Unidade;
 
 export type StockAlert = {
     estoque_minimo: number;

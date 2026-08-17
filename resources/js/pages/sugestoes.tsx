@@ -14,11 +14,7 @@ import { toast } from 'sonner';
 import { useDashboardScope } from '@/contexts/dashboard-scope-context';
 import { SuggestionDetail } from '@/features/suggestions/suggestion-detail';
 import type { Suggestion } from '@/features/suggestions/types';
-
-type ApiError = {
-    message?: string;
-    errors?: Record<string, string[]>;
-};
+import type { ApiError } from '@/types/api';
 
 type MetricCardProps = {
     detail: string;
