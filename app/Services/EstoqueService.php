@@ -27,8 +27,12 @@ class EstoqueService
     public function itensAbaixoDoMinimo(): Collection
     {
         return SaldoPorUnidade::with(['item', 'unidade'])
+            ->whereHas('item', fn ($query) => $query->whereColumn(
+                'saldos_por_unidade.quantidade',
+                '<',
+                'itens.estoque_minimo',
+            ))
             ->get()
-            ->filter(fn (SaldoPorUnidade $saldo) => $saldo->quantidade < $saldo->item->estoque_minimo)
             ->sortBy(fn (SaldoPorUnidade $saldo) => $saldo->quantidade / max($saldo->item->estoque_minimo, 1))
             ->values();
     }
@@ -72,25 +76,36 @@ class EstoqueService
      */
     public function gerarSugestoes(): Collection
     {
-        return $this->itensAbaixoDoMinimo()->map(function (SaldoPorUnidade $deficit) {
+        $deficits = $this->itensAbaixoDoMinimo();
+        $itemIds = $deficits->pluck('item_id')->unique();
+
+        $requisicoesPendentes = RequisicaoCompra::query()
+            ->whereIn('item_id', $itemIds)
+            ->whereIn('unidade_id', $deficits->pluck('unidade_id')->unique())
+            ->where('status', 'pendente')
+            ->latest()
+            ->get()
+            ->groupBy(fn (RequisicaoCompra $requisicao) => "{$requisicao->item_id}:{$requisicao->unidade_id}")
+            ->map(fn (Collection $requisicoes) => $requisicoes->first());
+
+        $saldosPorItem = SaldoPorUnidade::with('unidade')
+            ->whereIn('item_id', $itemIds)
+            ->get()
+            ->groupBy('item_id');
+
+        return $deficits->map(function (SaldoPorUnidade $deficit) use ($requisicoesPendentes, $saldosPorItem) {
             $item = $deficit->item;
             $unidadeDeficit = $deficit->unidade;
             $faltam = $item->estoque_minimo - $deficit->quantidade;
-            $requisicaoPendente = RequisicaoCompra::where('item_id', $item->id)
-                ->where('unidade_id', $unidadeDeficit->id)
-                ->where('status', 'pendente')
-                ->latest()
-                ->first();
+            $requisicaoPendente = $requisicoesPendentes->get("{$item->id}:{$unidadeDeficit->id}");
 
-            $origem = SaldoPorUnidade::with('unidade')
-                ->where('item_id', $item->id)
-                ->where('unidade_id', '!=', $unidadeDeficit->id)
-                ->get()
-                ->map(fn (SaldoPorUnidade $s) => [
-                    'saldo' => $s,
-                    'excedente' => $s->quantidade - $item->estoque_minimo,
+            $origem = $saldosPorItem->get($item->id, collect())
+                ->reject(fn (SaldoPorUnidade $saldo) => $saldo->unidade_id === $unidadeDeficit->id)
+                ->map(fn (SaldoPorUnidade $saldo) => [
+                    'saldo' => $saldo,
+                    'excedente' => $saldo->quantidade - $item->estoque_minimo,
                 ])
-                ->filter(fn (array $s) => $s['excedente'] > 0)
+                ->filter(fn (array $saldo) => $saldo['excedente'] > 0)
                 ->sortByDesc('excedente')
                 ->first();
 
