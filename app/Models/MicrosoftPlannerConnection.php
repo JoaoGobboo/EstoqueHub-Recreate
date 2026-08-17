@@ -51,6 +51,7 @@ class MicrosoftPlannerConnection extends Model
         return $this->microsoft_connection_status === 'connected' && ! $this->microsoft_reconnect_required;
     }
 
+    /** @return BelongsTo<User, $this> */
     public function connectedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'connected_by_user_id');

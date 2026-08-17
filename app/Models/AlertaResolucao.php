@@ -27,16 +27,19 @@ class AlertaResolucao extends Model
         ];
     }
 
+    /** @return BelongsTo<Item, $this> */
     public function item(): BelongsTo
     {
         return $this->belongsTo(Item::class);
     }
 
+    /** @return BelongsTo<Unidade, $this> */
     public function unidade(): BelongsTo
     {
         return $this->belongsTo(Unidade::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function usuario(): BelongsTo
     {
         return $this->belongsTo(User::class, 'resolvido_por');

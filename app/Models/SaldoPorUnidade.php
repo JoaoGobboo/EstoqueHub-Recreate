@@ -42,11 +42,13 @@ class SaldoPorUnidade extends Model
         ];
     }
 
+    /** @return BelongsTo<Item, $this> */
     public function item(): BelongsTo
     {
         return $this->belongsTo(Item::class);
     }
 
+    /** @return BelongsTo<Unidade, $this> */
     public function unidade(): BelongsTo
     {
         return $this->belongsTo(Unidade::class);
