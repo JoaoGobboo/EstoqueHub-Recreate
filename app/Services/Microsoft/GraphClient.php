@@ -35,12 +35,14 @@ class GraphClient
             if ($status === 429 && $tentativas < 2) {
                 sleep(min((int) ($resposta->header('Retry-After') ?: 1), 5));
                 $tentativas++;
+
                 continue;
             }
 
             if (in_array($status, [500, 502, 503, 504], true) && $tentativas < 2) {
                 usleep((2 ** $tentativas) * 200_000);
                 $tentativas++;
+
                 continue;
             }
 
