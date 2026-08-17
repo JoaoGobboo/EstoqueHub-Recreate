@@ -11,6 +11,10 @@ use Illuminate\Support\Facades\Http;
  */
 class GraphClient
 {
+    /**
+     * @param  array<string, mixed>|null  $body
+     * @param  array<string, string|null>  $headers
+     */
     public function request(
         string $method,
         string $url,

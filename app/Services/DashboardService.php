@@ -89,6 +89,7 @@ class DashboardService
         $consumoPorItemUnidade = [
             'itens' => $topItemIds->map(function (int $itemId) use ($itensMaisSolicitados) {
                 $item = $itensMaisSolicitados->get($itemId);
+                assert($item instanceof Item);
 
                 return ['id' => $item->id, 'nome' => $item->nome, 'sku' => $item->sku];
             }),
@@ -96,24 +97,39 @@ class DashboardService
                 'unidade' => $unidade->nome,
                 'quantidades' => $topItemIds->map(fn (int $itemId) => (int) ($consumo30Dias
                     ->first(fn (Movimentacao $consumo) => $consumo->item_id === $itemId
-                        && $consumo->unidade_origem_id === $unidade->id)?->total ?? 0)),
+                        && $consumo->unidade_origem_id === $unidade->id)
+                    ?->getAttribute('total') ?? 0)),
             ]),
         ];
 
         $saldosAtuais = SaldoPorUnidade::with(['item', 'unidade'])
             ->when($unidadeIds !== null, fn (Builder $query) => $query->whereIn('unidade_id', $unidadeIds))
             ->get()
-            ->sortBy(fn (SaldoPorUnidade $saldo) => $saldo->item->nome.'|'.$saldo->unidade->nome)
+            ->sortBy(function (SaldoPorUnidade $saldo) {
+                $item = $saldo->item;
+                $unidade = $saldo->unidade;
+                assert($item instanceof Item);
+                assert($unidade instanceof Unidade);
+
+                return $item->nome.'|'.$unidade->nome;
+            })
             ->values()
-            ->map(fn (SaldoPorUnidade $saldo) => [
-                'item_id' => $saldo->item_id,
-                'item' => $saldo->item->nome,
-                'sku' => $saldo->item->sku,
-                'unidade_id' => $saldo->unidade_id,
-                'unidade' => $saldo->unidade->nome,
-                'quantidade' => $saldo->quantidade,
-                'estoque_minimo' => $saldo->item->estoque_minimo,
-            ]);
+            ->map(function (SaldoPorUnidade $saldo) {
+                $item = $saldo->item;
+                $unidade = $saldo->unidade;
+                assert($item instanceof Item);
+                assert($unidade instanceof Unidade);
+
+                return [
+                    'item_id' => $saldo->item_id,
+                    'item' => $item->nome,
+                    'sku' => $item->sku,
+                    'unidade_id' => $saldo->unidade_id,
+                    'unidade' => $unidade->nome,
+                    'quantidade' => $saldo->quantidade,
+                    'estoque_minimo' => $item->estoque_minimo,
+                ];
+            });
 
         $feedRecente = $this->movimentacoesNoEscopo(
             Movimentacao::with(['item', 'unidadeOrigem', 'unidadeDestino', 'usuario']),
@@ -155,6 +171,11 @@ class DashboardService
         ];
     }
 
+    /**
+     * @param  Builder<Movimentacao>  $query
+     * @param  Collection<int, int>|null  $unidadeIds
+     * @return Builder<Movimentacao>
+     */
     private function movimentacoesNoEscopo(Builder $query, ?Collection $unidadeIds): Builder
     {
         return $query->when($unidadeIds !== null, function (Builder $query) use ($unidadeIds) {

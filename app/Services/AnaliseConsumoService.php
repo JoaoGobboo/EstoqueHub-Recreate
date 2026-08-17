@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Item;
 use App\Models\Movimentacao;
 use App\Models\SaldoPorUnidade;
 use Carbon\CarbonInterface;
@@ -31,6 +32,7 @@ class AnaliseConsumoService
         $itensMaisConsumidos = $saidas->groupBy('item_id')
             ->map(function ($grupo) {
                 $item = $grupo->first()->item;
+                assert($item instanceof Item);
                 $quantidade = (int) $grupo->sum('quantidade');
 
                 return [
@@ -53,14 +55,27 @@ class AnaliseConsumoService
 
         return [
             'periodo' => ['inicio' => $dataInicio->toDateString(), 'fim' => $dataFim->toDateString()],
-            'valor_adquirido' => round($entradas->sum(fn ($m) => $m->quantidade * (float) $m->item->valor_unitario), 2),
-            'valor_consumido' => round($saidas->sum(fn ($m) => $m->quantidade * (float) $m->item->valor_unitario), 2),
+            'valor_adquirido' => round($entradas->sum(function (Movimentacao $movimentacao) {
+                $item = $movimentacao->item;
+                assert($item instanceof Item);
+
+                return $movimentacao->quantidade * (float) $item->valor_unitario;
+            }), 2),
+            'valor_consumido' => round($saidas->sum(function (Movimentacao $movimentacao) {
+                $item = $movimentacao->item;
+                assert($item instanceof Item);
+
+                return $movimentacao->quantidade * (float) $item->valor_unitario;
+            }), 2),
             'itens_mais_consumidos' => $itensMaisConsumidos,
             'consumo_por_unidade' => $consumoPorUnidade,
             'curva_abc' => $this->curvaAbc($unidadeId),
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function curvaAbc(?int $unidadeId): array
     {
         $porItem = SaldoPorUnidade::with('item')
@@ -69,6 +84,7 @@ class AnaliseConsumoService
             ->groupBy('item_id')
             ->map(function ($grupo) {
                 $item = $grupo->first()->item;
+                assert($item instanceof Item);
                 $quantidade = (int) $grupo->sum('quantidade');
 
                 return ['item' => $item, 'valor' => $quantidade * (float) $item->valor_unitario];
