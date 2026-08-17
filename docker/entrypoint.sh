@@ -9,7 +9,7 @@ mkdir -p "$database_directory"
 database_created=0
 
 if [ ! -f "$database_path" ]; then
-    : > "$database_path"
+    : >"$database_path"
     database_created=1
 fi
 
@@ -24,7 +24,7 @@ if [ -z "${APP_KEY:-}" ]; then
 
     if [ ! -s "$key_file" ]; then
         umask 077
-        php artisan key:generate --show --no-ansi > "$key_file"
+        php artisan key:generate --show --no-ansi >"$key_file"
     fi
 
     export APP_KEY="$(cat "$key_file")"
