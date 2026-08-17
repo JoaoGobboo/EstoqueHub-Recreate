@@ -10,10 +10,10 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         User::updateOrCreate(
-            ['email' => env('ESTOQUEHUB_ADMIN_EMAIL', 'admin@estoquehub.local')],
+            ['email' => config('services.estoquehub.admin_email')],
             [
-                'name' => env('ESTOQUEHUB_ADMIN_NAME', 'Administrador EstoqueHub'),
-                'password' => env('ESTOQUEHUB_ADMIN_PASSWORD', 'password'),
+                'name' => config('services.estoquehub.admin_name'),
+                'password' => config('services.estoquehub.admin_password'),
                 'email_verified_at' => now(),
                 'is_admin' => true,
             ],

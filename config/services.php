@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'estoquehub' => [
+        'admin_email' => env('ESTOQUEHUB_ADMIN_EMAIL', 'admin@estoquehub.local'),
+        'admin_name' => env('ESTOQUEHUB_ADMIN_NAME', 'Administrador EstoqueHub'),
+        'admin_password' => env('ESTOQUEHUB_ADMIN_PASSWORD', 'password'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

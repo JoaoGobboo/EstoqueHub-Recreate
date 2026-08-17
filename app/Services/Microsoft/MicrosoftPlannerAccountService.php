@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 use League\OAuth2\Client\Token\AccessToken;
 use RuntimeException;
+use TheNetworg\OAuth2\Client\Token\AccessToken as AzureAccessToken;
 use Throwable;
 
 /**
@@ -72,6 +73,10 @@ class MicrosoftPlannerAccountService
         $token = $this->provider->getAccessToken('authorization_code', [
             'code' => (string) $request->query('code'),
         ]);
+
+        if (! $token instanceof AzureAccessToken) {
+            throw new RuntimeException('Token Microsoft inválido.');
+        }
 
         $claims = $token->getIdTokenClaims() ?? [];
 
@@ -188,6 +193,10 @@ class MicrosoftPlannerAccountService
             $novoToken = $this->provider->getAccessToken('refresh_token', [
                 'refresh_token' => $token->getRefreshToken(),
             ]);
+
+            if (! $novoToken instanceof AccessToken) {
+                throw new RuntimeException('Token Microsoft inválido.');
+            }
         } catch (Throwable $e) {
             $this->marcarReconexaoNecessaria($conexao, $this->sanitizarErro($e));
 
@@ -238,9 +247,12 @@ class MicrosoftPlannerAccountService
                 'microsoft_last_error' => null,
             ])->save();
 
+            /** @var array<int, array{name: string}> $buckets */
+            $buckets = $bucketsResp->json('value', []);
+
             return [
                 'plano' => $planResp->json('title'),
-                'buckets' => collect($bucketsResp->json('value'))->pluck('name')->all(),
+                'buckets' => collect($buckets)->pluck('name')->all(),
             ];
         } catch (GraphException $e) {
             $conexao->forceFill([
