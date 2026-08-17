@@ -8,9 +8,10 @@
         "dev": "vite",
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",
-        "lint": "eslint . --fix",
-        "lint:check": "eslint .",
-        "types:check": "tsc --noEmit"
+        "wayfinder:generate": "php artisan wayfinder:generate --with-form",
+        "lint": "npm run wayfinder:generate && eslint . --fix",
+        "lint:check": "npm run wayfinder:generate && eslint .",
+        "types:check": "npm run wayfinder:generate && tsc --noEmit"
     },
     "devDependencies": {
         "@eslint/js": "^9.19.0",
