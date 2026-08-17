@@ -10,9 +10,27 @@ function PencilLoginMark() {
             viewBox="0 0 14 14"
             fill="none"
         >
-            <path d="M4.1 1.2h5.8" stroke="#FAFAFA" strokeWidth="1.1" strokeLinecap="round" />
-            <path d="M2.9 3.6h8.2" stroke="#FAFAFA" strokeWidth="1.1" strokeLinecap="round" />
-            <rect x="1.8" y="6" width="10.4" height="6.8" rx="1.1" stroke="#FAFAFA" strokeWidth="1.1" />
+            <path
+                d="M4.1 1.2h5.8"
+                stroke="#FAFAFA"
+                strokeWidth="1.1"
+                strokeLinecap="round"
+            />
+            <path
+                d="M2.9 3.6h8.2"
+                stroke="#FAFAFA"
+                strokeWidth="1.1"
+                strokeLinecap="round"
+            />
+            <rect
+                x="1.8"
+                y="6"
+                width="10.4"
+                height="6.8"
+                rx="1.1"
+                stroke="#FAFAFA"
+                strokeWidth="1.1"
+            />
         </svg>
     );
 }
@@ -26,7 +44,7 @@ export default function AuthLoginLayout({ children }: Props) {
                         <div className="mb-1 flex size-6 items-center justify-center">
                             <PencilLoginMark />
                         </div>
-                        <h1 className="text-center text-lg font-bold leading-6">
+                        <h1 className="text-center text-lg leading-6 font-bold">
                             Bem vindo ao EstoqueHub
                         </h1>
                         <p className="text-center text-xs text-[#a1a1aa]">
@@ -48,7 +66,9 @@ export default function AuthLoginLayout({ children }: Props) {
             </div>
 
             <p className="max-w-[585px] px-3 text-center text-[10px] leading-4 text-[#a1a1aa]">
-                Este &eacute; um sistema corporativo interno do Grupo Positivo. O acesso &eacute; restrito a usu&aacute;rios autorizados e monitorado conforme as pol&iacute;ticas da companhia.
+                Este &eacute; um sistema corporativo interno do Grupo Positivo.
+                O acesso &eacute; restrito a usu&aacute;rios autorizados e
+                monitorado conforme as pol&iacute;ticas da companhia.
             </p>
         </div>
     );

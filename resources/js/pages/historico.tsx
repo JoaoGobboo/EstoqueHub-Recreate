@@ -27,7 +27,6 @@ type MovementType = 'entrada' | 'saida' | 'transferencia';
 type MovementTypeFilter = 'all' | MovementType;
 type PeriodFilter = 'all' | 'today' | '7d' | '30d';
 
-
 type Movement = {
     id: number;
     tipo: MovementType;

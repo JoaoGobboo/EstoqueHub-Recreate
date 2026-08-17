@@ -17,7 +17,6 @@ import {
 } from '@/features/consumption/metric-card';
 import type { ItemWithCategory, Unidade } from '@/types/inventory';
 
-
 type ConsumedItem = {
     item: ItemWithCategory;
     quantidade: number;

@@ -126,7 +126,7 @@ export default function Login({ status, canResetPassword }: Props) {
                                     <span className="w-full border-t border-[#27272a]" />
                                 </div>
                                 <div className="relative flex justify-center">
-                                    <span className="bg-[#09090b] px-2 text-[9px] uppercase tracking-wide text-[#71717a]">
+                                    <span className="bg-[#09090b] px-2 text-[9px] tracking-wide text-[#71717a] uppercase">
                                         Ou continue com
                                     </span>
                                 </div>
