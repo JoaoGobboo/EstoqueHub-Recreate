@@ -3,7 +3,6 @@
 namespace App\Services\Microsoft;
 
 use App\Models\RequisicaoCompra;
-use Illuminate\Support\Facades\Http;
 
 /**
  * Envia e-mails de notificação via Microsoft Graph (POST /me/sendMail),
@@ -12,7 +11,10 @@ use Illuminate\Support\Facades\Http;
  */
 class GraphMailService
 {
-    public function __construct(private readonly MicrosoftPlannerAccountService $contas) {}
+    public function __construct(
+        private readonly MicrosoftPlannerAccountService $contas,
+        private readonly GraphClient $graph,
+    ) {}
 
     public function notificarNovaSolicitacaoDeCompra(RequisicaoCompra $requisicao): void
     {
@@ -24,23 +26,25 @@ class GraphMailService
 
         $token = $this->contas->obterTokenValido();
 
-        $resposta = Http::withToken($token)->post('https://graph.microsoft.com/v1.0/me/sendMail', [
-            'message' => [
-                'subject' => $this->assunto($requisicao),
-                'body' => [
-                    'contentType' => 'Text',
-                    'content' => $this->corpo($requisicao),
+        $this->graph->request(
+            method: 'POST',
+            url: 'https://graph.microsoft.com/v1.0/me/sendMail',
+            token: $token,
+            body: [
+                'message' => [
+                    'subject' => $this->assunto($requisicao),
+                    'body' => [
+                        'contentType' => 'Text',
+                        'content' => $this->corpo($requisicao),
+                    ],
+                    'toRecipients' => [
+                        ['emailAddress' => ['address' => $destinatario]],
+                    ],
                 ],
-                'toRecipients' => [
-                    ['emailAddress' => ['address' => $destinatario]],
-                ],
+                'saveToSentItems' => true,
             ],
-            'saveToSentItems' => true,
-        ]);
-
-        if ($resposta->failed()) {
-            throw GraphException::fromResponse($resposta, 'enviar e-mail de notificação da solicitação de compra');
-        }
+            contexto: 'enviar e-mail de notificação da solicitação de compra',
+        );
     }
 
     private function assunto(RequisicaoCompra $requisicao): string

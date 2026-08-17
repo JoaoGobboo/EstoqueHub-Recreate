@@ -6,11 +6,9 @@ use App\Exceptions\PlannerAccountMismatchException;
 use App\Exceptions\PlannerNotConnectedException;
 use App\Exceptions\PlannerReconnectRequiredException;
 use App\Models\MicrosoftPlannerConnection;
-use Illuminate\Http\Client\Response;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
@@ -33,7 +31,10 @@ class MicrosoftPlannerAccountService
 
     private const SESSION_PKCE = 'microsoft_planner.pkce_verifier';
 
-    public function __construct(private readonly AzureOAuthProvider $provider) {}
+    public function __construct(
+        private readonly AzureOAuthProvider $provider,
+        private readonly GraphClient $graph,
+    ) {}
 
     public function redirectParaConexao(): RedirectResponse
     {
@@ -78,7 +79,12 @@ class MicrosoftPlannerAccountService
             throw new RuntimeException('Nonce inválido na resposta da Microsoft.');
         }
 
-        $resposta = Http::withToken($token->getToken())->get('https://graph.microsoft.com/v1.0/me');
+        $resposta = $this->graph->request(
+            method: 'GET',
+            url: 'https://graph.microsoft.com/v1.0/me',
+            token: $token->getToken(),
+            contexto: 'confirmar a identidade da conta Microsoft',
+        );
 
         if ($resposta->failed()) {
             throw GraphException::fromResponse($resposta, 'confirmar a identidade da conta Microsoft');
@@ -212,11 +218,19 @@ class MicrosoftPlannerAccountService
         try {
             $token = $this->obterTokenValido();
 
-            $planResp = Http::withToken($token)->get("https://graph.microsoft.com/v1.0/planner/plans/{$planId}");
-            $this->assertSucesso($planResp, 'consultar o plano do Planner');
+            $planResp = $this->graph->request(
+                method: 'GET',
+                url: "https://graph.microsoft.com/v1.0/planner/plans/{$planId}",
+                token: $token,
+                contexto: 'consultar o plano do Planner',
+            );
 
-            $bucketsResp = Http::withToken($token)->get("https://graph.microsoft.com/v1.0/planner/plans/{$planId}/buckets");
-            $this->assertSucesso($bucketsResp, 'consultar os buckets do plano');
+            $bucketsResp = $this->graph->request(
+                method: 'GET',
+                url: "https://graph.microsoft.com/v1.0/planner/plans/{$planId}/buckets",
+                token: $token,
+                contexto: 'consultar os buckets do plano',
+            );
 
             $conexao->forceFill([
                 'microsoft_last_test_at' => now(),
@@ -243,13 +257,6 @@ class MicrosoftPlannerAccountService
             ])->save();
 
             throw $e;
-        }
-    }
-
-    private function assertSucesso(Response $response, string $contexto): void
-    {
-        if ($response->failed()) {
-            throw GraphException::fromResponse($response, $contexto);
         }
     }
 
