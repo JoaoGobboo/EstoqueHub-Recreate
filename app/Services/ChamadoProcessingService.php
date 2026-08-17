@@ -18,9 +18,9 @@ class ChamadoProcessingService
     ) {}
 
     /**
-     * Processa todos os chamados pendentes: registra a saída de estoque
-     * correspondente e marca o chamado como fechado. Chamados cujo item não
-     * tem saldo suficiente são reportados em 'falhas' e permanecem abertos.
+     * Processa todos os chamados pendentes de forma idempotente: reivindica
+     * cada chamado uma única vez, registra a saída correspondente e o fecha.
+     * Chamados cujo item não tem saldo suficiente permanecem abertos.
      *
      * @return array{processados: int, falhas: array<int, array{numero_chamado: string, erro: string}>}
      */
@@ -31,8 +31,9 @@ class ChamadoProcessingService
 
         foreach ($this->connector->listarPendentes() as $chamado) {
             try {
-                $this->processarUm($chamado, $usuario);
-                $processados++;
+                if ($this->processarUm($chamado, $usuario)) {
+                    $processados++;
+                }
             } catch (SaldoInsuficienteException $e) {
                 $falhas[] = [
                     'numero_chamado' => $chamado->numeroChamado,
@@ -47,9 +48,13 @@ class ChamadoProcessingService
     /**
      * @throws SaldoInsuficienteException
      */
-    private function processarUm(ChamadoPendente $chamado, ?User $usuario): void
+    private function processarUm(ChamadoPendente $chamado, ?User $usuario): bool
     {
-        DB::transaction(function () use ($chamado, $usuario) {
+        return DB::transaction(function () use ($chamado, $usuario) {
+            if (! $this->connector->tentarMarcarProcessado($chamado)) {
+                return false;
+            }
+
             $item = Item::findOrFail($chamado->itemId);
             $unidade = Unidade::findOrFail($chamado->unidadeId);
 
@@ -61,7 +66,7 @@ class ChamadoProcessingService
                 usuario: $usuario,
             );
 
-            $this->connector->marcarProcessado($chamado);
+            return true;
         });
     }
 }

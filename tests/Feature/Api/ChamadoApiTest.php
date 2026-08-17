@@ -49,5 +49,35 @@ class ChamadoApiTest extends ApiTestCase
             'user_id' => $this->usuario->id,
             'tipo' => 'saida',
         ]);
+
+        $this->postJson('/api/chamados/processar')
+            ->assertOk()
+            ->assertJsonPath('processados', 0)
+            ->assertJsonPath('falhas', []);
+
+        $this->assertSame(90, SaldoPorUnidade::where('item_id', $item->id)->value('quantidade'));
+        $this->assertDatabaseCount('movimentacoes', 1);
+    }
+
+    public function test_mantem_chamado_aberto_se_o_saldo_for_insuficiente(): void
+    {
+        $item = Item::factory()->create();
+        $unidade = Unidade::factory()->create();
+        SaldoPorUnidade::create(['item_id' => $item->id, 'unidade_id' => $unidade->id, 'quantidade' => 5]);
+        ChamadoMock::factory()->create([
+            'item_id' => $item->id,
+            'unidade_id' => $unidade->id,
+            'quantidade_solicitada' => 10,
+            'status' => 'aberto',
+        ]);
+
+        $this->postJson('/api/chamados/processar')
+            ->assertOk()
+            ->assertJsonPath('processados', 0)
+            ->assertJsonCount(1, 'falhas');
+
+        $this->assertDatabaseHas('chamados_mock', ['status' => 'aberto']);
+        $this->assertSame(5, SaldoPorUnidade::where('item_id', $item->id)->value('quantidade'));
+        $this->assertDatabaseCount('movimentacoes', 0);
     }
 }

@@ -22,10 +22,11 @@ class ChamadoMockConnector implements ChamadoConnectorInterface
             ));
     }
 
-    public function marcarProcessado(ChamadoPendente $chamado): void
+    public function tentarMarcarProcessado(ChamadoPendente $chamado): bool
     {
-        ChamadoMock::query()
+        return ChamadoMock::query()
             ->where('numero_chamado', $chamado->numeroChamado)
-            ->update(['status' => 'fechado']);
+            ->where('status', 'aberto')
+            ->update(['status' => 'fechado']) === 1;
     }
 }
